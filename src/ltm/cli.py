@@ -6,6 +6,7 @@ from .memory import answer, remember, retrieve
 from .eval import evaluate_cases, load_cases
 from .store import MemoryStore
 
+
 def main():
     load_env_file()
     parser = argparse.ArgumentParser(description="Long-term memory research baseline")
@@ -22,31 +23,24 @@ def main():
     content = sub.add_parser("content", help="Create or revise multi-format content using long-term memory")
     content_sub = content.add_subparsers(dest="content_action", required=True)
     create = content_sub.add_parser("create", help="Generate a new content draft")
-    create.add_argument("--user", required=True)
-    create.add_argument("--topic", required=True)
+    create.add_argument("--user", required=True); create.add_argument("--topic", required=True)
     create.add_argument("--type", dest="content_type", choices=["blog", "article", "social", "email", "newsletter", "report", "script", "product"], default="blog")
-    create.add_argument("--audience", default="general readers")
-    create.add_argument("--tone", default="professional")
+    create.add_argument("--audience", default="general readers"); create.add_argument("--tone", default="professional")
     create.add_argument("--length", choices=["short", "medium", "long"], default="medium")
-    create.add_argument("--keywords", nargs="*", default=[])
-    create.add_argument("--instructions", default="")
+    create.add_argument("--keywords", nargs="*", default=[]); create.add_argument("--instructions", default="")
     create.add_argument("--k", type=int, default=5)
-    create.add_argument("--output")
-    create.add_argument("--review", action="store_true", help="Request a separate editorial review")
+    create.add_argument("--no-memory", action="store_true", help="Do not retrieve or send long-term memories to Gemini")
+    create.add_argument("--output"); create.add_argument("--review", action="store_true", help="Request a separate editorial review")
     revise = content_sub.add_parser("revise", help="Revise an existing text or Markdown draft")
-    revise.add_argument("--input", required=True)
-    revise.add_argument("--instructions", required=True)
-    revise.add_argument("--output")
+    revise.add_argument("--input", required=True); revise.add_argument("--instructions", required=True); revise.add_argument("--output")
     args = parser.parse_args()
     store = None if args.command == "longmemeval" else MemoryStore(db_path())
     if args.command == "add":
-        turn, count = remember(store, args.user, args.text)
-        print(f"Saved turn {turn}; extracted {count} memory item(s).")
+        turn, count = remember(store, args.user, args.text); print(f"Saved turn {turn}; extracted {count} memory item(s).")
     elif args.command == "search":
         for item in retrieve(store, args.user, args.query, top_k()):
             print(f"[{item['id']}] ({item['category']}, score={item['score']:.3f}) {item['content']}")
-    elif args.command == "ask":
-        print(answer(store, args.user, args.question, top_k()))
+    elif args.command == "ask": print(answer(store, args.user, args.question, top_k()))
     elif args.command == "generate":
         memories = retrieve(store, args.user, args.prompt, top_k())
         context = "\n".join("- " + m["content"] for m in memories)
@@ -75,43 +69,33 @@ def main():
         if args.content_action == "create":
             result = create_content(store, args.user, args.topic, args.content_type,
                 args.audience, args.tone, args.length, args.keywords, args.instructions,
-                top_k=args.k)
-            if args.output:
-                print(f"Saved content to {write_content(result['content'], args.output)}")
-            else:
-                print(result["content"])
-            print(json.dumps({"content_type": result["content_type"],
-                "topic": result["topic"], "memory_count": result["memory_count"],
-                "memory_ids": result["memory_ids"]}, indent=2))
+                top_k=args.k, use_memory=not args.no_memory)
+            if args.output: print(f"Saved content to {write_content(result['content'], args.output)}")
+            else: print(result["content"])
+            print(json.dumps({"content_type": result["content_type"], "topic": result["topic"],
+                "memory_count": result["memory_count"], "memory_ids": result["memory_ids"]}, indent=2))
             if args.review:
-                review = editorial_review(result["content"])
                 print("EDITORIAL REVIEW")
-                print(json.dumps(review, indent=2, ensure_ascii=False))
+                print(json.dumps(editorial_review(result["content"]), indent=2, ensure_ascii=False))
         elif args.content_action == "revise":
             source = Path(args.input).read_text(encoding="utf-8")
             revised = revise_content(source, args.instructions)
-            if args.output:
-                print(f"Saved revised content to {write_content(revised, args.output)}")
-            else:
-                print(revised)
+            if args.output: print(f"Saved revised content to {write_content(revised, args.output)}")
+            else: print(revised)
     elif args.command == "longmemeval":
         import json
         from pathlib import Path
         from .longmemeval import run_longmemeval, write_hypotheses_jsonl
-        report = run_longmemeval(args.dataset, k=args.k, limit=args.limit,
-                                 generate_answers=args.generate_answers)
+        report = run_longmemeval(args.dataset, k=args.k, limit=args.limit, generate_answers=args.generate_answers)
         hypotheses = report.pop("hypotheses")
-        output = Path(args.output)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
-                          encoding="utf-8")
+        output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         if args.generate_answers:
             write_hypotheses_jsonl(hypotheses, args.predictions)
             print(f"Saved {len(hypotheses)} hypotheses to {args.predictions}")
-        print(json.dumps({"metrics": report["metrics"],
-                          "questions_scored": report["questions_scored"],
-                          "no_gold_evidence_questions": report["no_gold_evidence_questions"],
-                          "report": str(output)}, indent=2))
+        print(json.dumps({"metrics": report["metrics"], "questions_scored": report["questions_scored"],
+            "no_gold_evidence_questions": report["no_gold_evidence_questions"], "report": str(output)}, indent=2))
+
 
 if __name__ == "__main__":
     main()
