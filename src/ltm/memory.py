@@ -43,8 +43,11 @@ def remember(store, user_id, text):
     except Exception:
         candidates = []
     saved = 0
+    superseded_ids = set()
     for item in candidates:
         content = str(item["content"]).strip()
+        if not content:
+            continue
         try:
             vector = embed(content)
         except Exception:
@@ -55,12 +58,18 @@ def remember(store, user_id, text):
                 supersedes = int(supersedes)
             except (TypeError, ValueError):
                 supersedes = None
-            if supersedes not in {m["id"] for m in existing}:
+            if supersedes not in {m["id"] for m in existing} or supersedes in superseded_ids:
                 supersedes = None
-        store.add_memory(user_id, content, str(item.get("category", "fact")),
-            _bounded(item.get("importance", 0.5)), _bounded(item.get("confidence", 0.7)),
-            vector, turn_id, valid_from=now(), supersedes_id=supersedes)
-        saved += 1
+        try:
+            store.add_memory(user_id, content, str(item.get("category", "fact")),
+                _bounded(item.get("importance", 0.5)), _bounded(item.get("confidence", 0.7)),
+                vector, turn_id, valid_from=now(), supersedes_id=supersedes)
+            if supersedes is not None:
+                superseded_ids.add(supersedes)
+            saved += 1
+        except ValueError:
+            # A stale or duplicate supersession must not discard other extracted facts.
+            continue
     return turn_id, saved
 
 def retrieve(store, user_id, query, limit=5):
