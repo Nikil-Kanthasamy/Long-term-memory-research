@@ -111,7 +111,9 @@ class MemoryStore:
                 found.append(item)
         return sorted(found, key=lambda x: x["score"], reverse=True)[:limit]
 
-    def search(self, user_id, query, query_embedding=None, limit=5, as_of=None):
+    def search(self, user_id, query, query_embedding=None, limit=5, as_of=None, mode="hybrid"):
+        if mode not in {"lexical", "semantic", "hybrid"}:
+            raise ValueError("mode must be lexical, semantic, or hybrid")
         query_terms = set(_terms(query))
         as_of = as_of or now()
         results = []
@@ -128,7 +130,12 @@ class MemoryStore:
                     semantic = cosine(query_embedding, json.loads(row["embedding"]))
                 except (ValueError, TypeError):
                     pass
-            score = 0.75 * semantic + 0.25 * lexical if query_embedding else lexical
+            if mode == "semantic":
+                score = semantic
+            elif mode == "hybrid":
+                score = 0.75 * semantic + 0.25 * lexical if query_embedding else lexical
+            else:
+                score = lexical
             score += 0.05 * float(row["importance"])
             if score > 0:
                 row["score"] = score
