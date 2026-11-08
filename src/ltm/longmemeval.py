@@ -38,6 +38,8 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
     """Run session-level lexical retrieval; optionally produce QA hypotheses JSONL."""
     if k < 1:
         raise ValueError("k must be at least 1")
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be at least 1 when provided")
     with Path(dataset_path).open(encoding="utf-8") as handle:
         dataset = json.load(handle)
     if not isinstance(dataset, list):
@@ -83,7 +85,7 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
             ranked_memories = store.search(qid, query, limit=k, mode="lexical")
             ranked_sessions = [memory_to_session[int(row["id"])] for row in ranked_memories]
             gold = item.get("answer_session_ids") or []
-            metrics = _rank_metrics(ranked_sessions, gold, k)
+            metrics = None if qid.endswith("_abs") else _rank_metrics(ranked_sessions, gold, k)
             qtype = str(item.get("question_type", "unknown"))
             if metrics is None:
                 abstention += 1
