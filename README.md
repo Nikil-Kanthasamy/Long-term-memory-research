@@ -119,3 +119,28 @@ python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 
 ```
 
 The adapter reports Precision@K, Recall@K, MRR, Hit@1, and per-question-type results. No-gold-evidence/abstention questions are counted separately and excluded from retrieval averages. Use the official LongMemEval GPT-4o judge script to score generated hypotheses; see [Phase 4 guide](docs/phase-4-longmemeval.md). Retrieval metrics and end-to-end answer accuracy must be reported separately.
+
+
+## Phase 5: memory-aware multi-format content creation
+
+Create blogs, articles, social posts, emails, newsletters, reports, scripts, and product descriptions using a structured brief plus relevant user-scoped long-term memories. The feature uses the configured Gemini model; it does not train a new model.
+
+Generate a blog post:
+
+```bash
+python -m src.ltm.cli content create --user demo --topic "Why long-term memory matters for AI assistants" --type blog --audience "technology students" --tone "clear and educational" --length medium --keywords memory RAG retrieval --output results/ai-memory-blog.md
+```
+
+Generate a report and request a separate editorial review:
+
+```bash
+python -m src.ltm.cli content create --user demo --topic "Evaluation of a conversational memory prototype" --type report --audience "research supervisors" --tone formal --length long --review --output results/memory-report.md
+```
+
+Revise a draft without overwriting the source:
+
+```bash
+python -m src.ltm.cli content revise --input results/ai-memory-blog.md --instructions "Shorten the introduction and add a practical example." --output results/ai-memory-blog-revised.md
+```
+
+See [Memory-aware content creation guide](docs/content-creation.md) for architecture, supported formats, design decisions, limitations, and a research evaluation plan. Generated drafts are not automatically stored as factual memories. Human review is required before publication.
