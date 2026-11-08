@@ -19,6 +19,24 @@ def main():
     timeline = sub.add_parser("timeline"); timeline.add_argument("--user", required=True); timeline.add_argument("--memory-id", required=True, type=int)
     evaluate = sub.add_parser("evaluate"); evaluate.add_argument("--user", required=True); evaluate.add_argument("--dataset", required=True); evaluate.add_argument("--mode", choices=["lexical", "semantic", "hybrid"], default="hybrid"); evaluate.add_argument("--k", type=int, default=5); evaluate.add_argument("--output")
     lme = sub.add_parser("longmemeval"); lme.add_argument("--dataset", required=True); lme.add_argument("--k", type=int, default=5); lme.add_argument("--limit", type=int); lme.add_argument("--output", default="results/longmemeval_retrieval.json"); lme.add_argument("--generate-answers", action="store_true"); lme.add_argument("--predictions", default="results/longmemeval_hypotheses.jsonl")
+    content = sub.add_parser("content", help="Create or revise multi-format content using long-term memory")
+    content_sub = content.add_subparsers(dest="content_action", required=True)
+    create = content_sub.add_parser("create", help="Generate a new content draft")
+    create.add_argument("--user", required=True)
+    create.add_argument("--topic", required=True)
+    create.add_argument("--type", dest="content_type", choices=["blog", "article", "social", "email", "newsletter", "report", "script", "product"], default="blog")
+    create.add_argument("--audience", default="general readers")
+    create.add_argument("--tone", default="professional")
+    create.add_argument("--length", choices=["short", "medium", "long"], default="medium")
+    create.add_argument("--keywords", nargs="*", default=[])
+    create.add_argument("--instructions", default="")
+    create.add_argument("--k", type=int, default=5)
+    create.add_argument("--output")
+    create.add_argument("--review", action="store_true", help="Request a separate editorial review")
+    revise = content_sub.add_parser("revise", help="Revise an existing text or Markdown draft")
+    revise.add_argument("--input", required=True)
+    revise.add_argument("--instructions", required=True)
+    revise.add_argument("--output")
     args = parser.parse_args()
     store = None if args.command == "longmemeval" else MemoryStore(db_path())
     if args.command == "add":
@@ -50,6 +68,32 @@ def main():
             Path(args.output).parent.mkdir(parents=True, exist_ok=True)
             Path(args.output).write_text(rendered + "\n", encoding="utf-8")
         print(rendered)
+    elif args.command == "content":
+        from pathlib import Path
+        import json
+        from .content import create_content, revise_content, editorial_review, write_content
+        if args.content_action == "create":
+            result = create_content(store, args.user, args.topic, args.content_type,
+                args.audience, args.tone, args.length, args.keywords, args.instructions,
+                top_k=args.k)
+            if args.output:
+                print(f"Saved content to {write_content(result['content'], args.output)}")
+            else:
+                print(result["content"])
+            print(json.dumps({"content_type": result["content_type"],
+                "topic": result["topic"], "memory_count": result["memory_count"],
+                "memory_ids": result["memory_ids"]}, indent=2))
+            if args.review:
+                review = editorial_review(result["content"])
+                print("EDITORIAL REVIEW")
+                print(json.dumps(review, indent=2, ensure_ascii=False))
+        elif args.content_action == "revise":
+            source = Path(args.input).read_text(encoding="utf-8")
+            revised = revise_content(source, args.instructions)
+            if args.output:
+                print(f"Saved revised content to {write_content(revised, args.output)}")
+            else:
+                print(revised)
     elif args.command == "longmemeval":
         import json
         from pathlib import Path
