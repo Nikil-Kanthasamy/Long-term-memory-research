@@ -34,6 +34,10 @@ class RetrievalEvaluationTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["recall_at_k"], 1.0)
         self.assertEqual(report["results"][0]["retrieved_ids"], [relevant])
 
+    def test_importance_does_not_rescue_zero_overlap(self):
+        self.store.add_memory("alice", "A completely unrelated gardening fact", importance=1.0)
+        self.assertEqual(self.store.search("alice", "quantum computing", mode="lexical"), [])
+
     def test_semantic_mode_requires_embedding(self):
         self.store.add_memory("alice", "Uses PyTorch")
         with self.assertRaises(ValueError):
