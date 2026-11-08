@@ -75,3 +75,14 @@ python -m unittest discover -s tests -v
 ~~~
 
 Memory is distinct from fine-tuning: it stores task-specific information outside model weights and retrieves it at inference time. Keep these pipelines separate initially. Only export curated, consented examples to training after data-governance review.
+
+## Phase 2: temporal and versioned memory
+
+The advanced engine adds additive database migrations, explicit supersession of outdated facts, validity windows, raw conversation search, and timeline inspection. Existing Phase 1 SQLite databases are migrated automatically when the store initializes.
+
+~~~bash
+python -m src.ltm.cli history --user demo --query PyTorch
+python -m src.ltm.cli timeline --user demo --memory-id 1
+~~~
+
+A correction can supersede a prior fact only when the extractor identifies its active memory ID and the application verifies that it belongs to the same user. Old versions remain available for audit, but active retrieval excludes superseded facts. See [Phase 2 design](docs/phase-2-advanced-memory.md).
