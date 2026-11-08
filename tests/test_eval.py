@@ -34,6 +34,11 @@ class RetrievalEvaluationTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["recall_at_k"], 1.0)
         self.assertEqual(report["results"][0]["retrieved_ids"], [relevant])
 
+    def test_semantic_mode_requires_embedding(self):
+        self.store.add_memory("alice", "Uses PyTorch")
+        with self.assertRaises(ValueError):
+            self.store.search("alice", "framework", mode="semantic")
+
     def test_empty_relevant_set_is_abstention_safe(self):
         scores = score_ranking([1, 2], [], k=2)
         self.assertEqual(scores["recall_at_k"], 1.0)
