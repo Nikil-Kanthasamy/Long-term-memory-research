@@ -78,6 +78,26 @@ class MemoryStore:
                  timestamp, timestamp, valid_from or timestamp, valid_until, supersedes_id))
             return int(cur.lastrowid)
 
+    def add_memories_batch(self, user_id, records):
+        """Insert benchmark/session records in one transaction; return their IDs."""
+        timestamp = now()
+        ids = []
+        with self.connect() as db:
+            for record in records:
+                content = str(record.get("content", "")).strip()
+                if not content:
+                    continue
+                cur = db.execute("""INSERT INTO memories
+                    (user_id,content,category,importance,confidence,embedding,source_turn_id,
+                     status,created_at,updated_at,valid_from,valid_until,supersedes_id)
+                    VALUES(?,?,?, ?,?,?,NULL,'active',?,?,?,NULL,NULL)""",
+                    (user_id, content, str(record.get("category", "session")),
+                     float(record.get("importance", 0.5)),
+                     float(record.get("confidence", 1.0)), None,
+                     timestamp, timestamp, record.get("valid_from")))
+                ids.append(int(cur.lastrowid))
+        return ids
+
     def active_memories(self, user_id):
         with self.connect() as db:
             rows = db.execute("SELECT * FROM memories WHERE user_id=? AND status='active' ORDER BY updated_at DESC",
