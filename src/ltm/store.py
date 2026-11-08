@@ -158,8 +158,8 @@ class MemoryStore:
                 score = 0.75 * semantic + 0.25 * lexical if query_embedding else lexical
             else:
                 score = lexical
-            score += 0.05 * float(row["importance"])
             if score > 0:
+                score += 0.05 * float(row["importance"])
                 row["score"] = score
                 results.append(row)
         return sorted(results, key=lambda x: x["score"], reverse=True)[:limit]
