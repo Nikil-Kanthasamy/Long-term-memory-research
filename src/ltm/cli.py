@@ -18,8 +18,9 @@ def main():
     history = sub.add_parser("history"); history.add_argument("--user", required=True); history.add_argument("--query", required=True)
     timeline = sub.add_parser("timeline"); timeline.add_argument("--user", required=True); timeline.add_argument("--memory-id", required=True, type=int)
     evaluate = sub.add_parser("evaluate"); evaluate.add_argument("--user", required=True); evaluate.add_argument("--dataset", required=True); evaluate.add_argument("--mode", choices=["lexical", "semantic", "hybrid"], default="hybrid"); evaluate.add_argument("--k", type=int, default=5); evaluate.add_argument("--output")
+    lme = sub.add_parser("longmemeval"); lme.add_argument("--dataset", required=True); lme.add_argument("--k", type=int, default=5); lme.add_argument("--limit", type=int); lme.add_argument("--output", default="results/longmemeval_retrieval.json"); lme.add_argument("--generate-answers", action="store_true"); lme.add_argument("--predictions", default="results/longmemeval_hypotheses.jsonl")
     args = parser.parse_args()
-    store = MemoryStore(db_path())
+    store = None if args.command == "longmemeval" else MemoryStore(db_path())
     if args.command == "add":
         turn, count = remember(store, args.user, args.text)
         print(f"Saved turn {turn}; extracted {count} memory item(s).")
@@ -49,6 +50,24 @@ def main():
             Path(args.output).parent.mkdir(parents=True, exist_ok=True)
             Path(args.output).write_text(rendered + "\n", encoding="utf-8")
         print(rendered)
+    elif args.command == "longmemeval":
+        import json
+        from pathlib import Path
+        from .longmemeval import run_longmemeval, write_hypotheses_jsonl
+        report = run_longmemeval(args.dataset, k=args.k, limit=args.limit,
+                                 generate_answers=args.generate_answers)
+        hypotheses = report.pop("hypotheses")
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                          encoding="utf-8")
+        if args.generate_answers:
+            write_hypotheses_jsonl(hypotheses, args.predictions)
+            print(f"Saved {len(hypotheses)} hypotheses to {args.predictions}")
+        print(json.dumps({"metrics": report["metrics"],
+                          "questions_scored": report["questions_scored"],
+                          "no_gold_evidence_questions": report["no_gold_evidence_questions"],
+                          "report": str(output)}, indent=2))
 
 if __name__ == "__main__":
     main()
