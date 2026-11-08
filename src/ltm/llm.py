@@ -5,8 +5,10 @@ import urllib.error
 import urllib.request
 from .config import setting
 
+
 class GeminiError(RuntimeError):
     pass
+
 
 def _post(url, payload, api_key):
     request = urllib.request.Request(url, data=json.dumps(payload).encode(),
@@ -20,7 +22,11 @@ def _post(url, payload, api_key):
     except urllib.error.URLError as exc:
         raise GeminiError(f"Could not reach Gemini API: {exc}") from exc
 
-def generate(prompt, system="You are a careful, concise assistant."):
+
+def generate(prompt, system="You are a careful, concise assistant.", max_output_tokens=1200):
+    """Generate text; callers may set a task-appropriate output token budget."""
+    if not isinstance(max_output_tokens, int) or max_output_tokens < 1:
+        raise ValueError("max_output_tokens must be a positive integer")
     key = os.getenv("GEMINI_API_KEY")
     if not key:
         raise GeminiError("GEMINI_API_KEY is not set. Add it to .env or the environment.")
@@ -28,11 +34,17 @@ def generate(prompt, system="You are a careful, concise assistant."):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     data = _post(url, {"system_instruction":{"parts":[{"text":system}]},
         "contents":[{"role":"user","parts":[{"text":prompt}]}],
-        "generationConfig":{"temperature":0.3,"maxOutputTokens":1200}}, key)
+        "generationConfig":{"temperature":0.3,"maxOutputTokens":max_output_tokens}}, key)
     try:
-        return "".join(p.get("text","") for p in data["candidates"][0]["content"]["parts"]).strip()
+        candidate = data["candidates"][0]
+        if candidate.get("finishReason") == "MAX_TOKENS":
+            raise GeminiError("Gemini stopped at the output token limit; increase the budget or request a shorter draft.")
+        return "".join(p.get("text","") for p in candidate["content"]["parts"]).strip()
+    except GeminiError:
+        raise
     except (KeyError, IndexError, TypeError) as exc:
         raise GeminiError(f"Unexpected Gemini response: {data}") from exc
+
 
 def embed(text):
     key = os.getenv("GEMINI_API_KEY")
