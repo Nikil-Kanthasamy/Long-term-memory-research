@@ -97,3 +97,25 @@ python -m src.ltm.cli evaluate --user demo --dataset data/retrieval_eval.json --
 ```
 
 See [Phase 3 evaluation guide](docs/phase-3-evaluation.md). GitHub Actions runs the unit test suite on pushes and pull requests. LongMemEval is a next integration target; the current harness does not claim full benchmark compatibility.
+
+## Phase 4: LongMemEval benchmark
+
+Download the official benchmark (kept local and git-ignored):
+
+```bash
+python scripts/download_longmemeval.py --variant s
+```
+
+Run session-level retrieval metrics:
+
+```bash
+python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 5 --limit 50
+```
+
+Optionally generate QA hypotheses with Gemini (one generation request per question):
+
+```bash
+python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 5 --limit 10 --generate-answers
+```
+
+The adapter reports Precision@K, Recall@K, MRR, Hit@1, and per-question-type results. No-gold-evidence/abstention questions are counted separately and excluded from retrieval averages. Use the official LongMemEval GPT-4o judge script to score generated hypotheses; see [Phase 4 guide](docs/phase-4-longmemeval.md). Retrieval metrics and end-to-end answer accuracy must be reported separately.
