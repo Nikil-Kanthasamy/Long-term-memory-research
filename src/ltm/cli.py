@@ -33,6 +33,10 @@ def main():
     create.add_argument("--output"); create.add_argument("--review", action="store_true", help="Request a separate editorial review")
     revise = content_sub.add_parser("revise", help="Revise an existing text or Markdown draft")
     revise.add_argument("--input", required=True); revise.add_argument("--instructions", required=True); revise.add_argument("--output")
+    content_eval = content_sub.add_parser("evaluate", help="Compare no-memory and memory-assisted content generation")
+    content_eval.add_argument("--user", required=True); content_eval.add_argument("--dataset", required=True)
+    content_eval.add_argument("--output-dir", default="results/content-eval"); content_eval.add_argument("--k", type=int, default=5)
+    content_eval.add_argument("--no-review", action="store_true", help="Skip the memory-plus-review condition")
     args = parser.parse_args()
     store = None if args.command == "longmemeval" else MemoryStore(db_path())
     if args.command == "add":
@@ -82,6 +86,11 @@ def main():
             revised = revise_content(source, args.instructions)
             if args.output: print(f"Saved revised content to {write_content(revised, args.output)}")
             else: print(revised)
+        elif args.content_action == "evaluate":
+            from .content_eval import load_content_cases, run_content_evaluation
+            summary = run_content_evaluation(store, args.user, load_content_cases(args.dataset),
+                args.output_dir, top_k=args.k, include_review=not args.no_review)
+            print(json.dumps(summary, indent=2))
     elif args.command == "longmemeval":
         import json
         from pathlib import Path
