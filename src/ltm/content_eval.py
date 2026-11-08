@@ -41,7 +41,7 @@ def run_content_evaluation(store, user_id, cases, output_dir, top_k=5, include_r
             result = create_content(store, user_id, use_memory=use_memory, **common)
             filename = f"case-{index:03d}-{condition}.md"
             (drafts_dir / filename).write_text(result["content"].rstrip() + "\n", encoding="utf-8")
-            record = {"case_id": case.get("id", f"case-{index:03d}"), "condition": condition,
+            record = {"blind_draft_id": f"D{len(records) + 1:04d}", "case_id": case.get("id", f"case-{index:03d}"), "condition": condition,
                 "draft_file": f"drafts/{filename}", "content_type": result["content_type"],
                 "topic": result["topic"], "memory_count": result["memory_count"], "memory_ids": result["memory_ids"]}
             if condition == "memory_plus_review":
