@@ -6,7 +6,7 @@ A Python research sandbox for persistent memory in language-model applications. 
 - One content-generation model: Google Gemini API (gemini-2.5-flash by default) for generation, memory extraction, and consolidation.
 - SQLite persistence for conversation turns and extracted memory records.
 - Optional Gemini embeddings (gemini-embedding-001) with cosine similarity; keyword fallback works without an API key.
-- Memory lifecycle: extract, retrieve, deduplicate, supersede (planned), and delete.
+- Memory lifecycle: extract, retrieve, deduplicate, supersede, version, inspect history, and delete.
 - Research notes, experiments, and evaluation metrics.
 
 This is a working baseline, not a newly trained neural memory model. It combines a pretrained API model with an external memory store. Train a dedicated memory model only after measuring this baseline.
@@ -86,3 +86,14 @@ python -m src.ltm.cli timeline --user demo --memory-id 1
 ~~~
 
 A correction can supersede a prior fact only when the extractor identifies its active memory ID and the application verifies that it belongs to the same user. Old versions remain available for audit, but active retrieval excludes superseded facts. See [Phase 2 design](docs/phase-2-advanced-memory.md).
+
+## Phase 3: retrieval evaluation
+
+Compare lexical, semantic, and hybrid retrieval against annotated query-to-memory relevance sets. Reports include Precision@K, Recall@K, MRR, and per-query retrieved IDs. This is an offline retrieval benchmark; semantic/hybrid modes use embeddings when available and hybrid falls back to lexical retrieval.
+
+```bash
+python -m src.ltm.cli evaluate --user demo --dataset data/retrieval_eval.json --mode lexical --k 5
+python -m src.ltm.cli evaluate --user demo --dataset data/retrieval_eval.json --mode hybrid --k 5 --output results/hybrid.json
+```
+
+See [Phase 3 evaluation guide](docs/phase-3-evaluation.md). GitHub Actions runs the unit test suite on pushes and pull requests. LongMemEval is a next integration target; the current harness does not claim full benchmark compatibility.
