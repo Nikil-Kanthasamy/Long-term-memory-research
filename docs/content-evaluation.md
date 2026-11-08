@@ -35,12 +35,12 @@ Provide a non-empty JSON array. Each case requires a topic; other fields are opt
 python -m src.ltm.cli content evaluate --user demo --dataset data/content_eval.json --output-dir results/content-eval
 ~~~
 
-For a two-condition comparison, add `--no-review`. The default makes two generation requests per case plus one separate review request for the third condition. API usage and cost scale with case count.
+For a two-condition comparison, add `--no-review`. The default makes three draft-generation requests per case (one per condition) plus one separate editorial-review request for the memory-plus-review condition. API usage and cost scale with case count.
 
 ## Outputs
 
 - `drafts/`: generated Markdown drafts.
-- `manifest.jsonl`: case, condition, draft path, memory count and memory IDs, plus advisory review where applicable.
+- `manifest.jsonl`: blind draft ID, case, condition, draft path, memory count and memory IDs, plus advisory review where applicable.
 - `ratings_template.csv`: blind draft IDs and empty rating columns.
 - `summary.json`: experiment size and rating dimensions.
 
