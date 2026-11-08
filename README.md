@@ -144,3 +144,14 @@ python -m src.ltm.cli content revise --input results/ai-memory-blog.md --instruc
 ```
 
 See [Memory-aware content creation guide](docs/content-creation.md) for architecture, supported formats, design decisions, limitations, and a research evaluation plan. Generated drafts are not automatically stored as factual memories. Human review is required before publication.
+
+
+## Phase 5.1: content quality evaluation
+
+Compare drafts generated without memory, with retrieved memory, and with memory plus an advisory editorial review:
+
+```bash
+python -m src.ltm.cli content evaluate --user demo --dataset data/content_eval.json --output-dir results/content-eval
+```
+
+The harness saves draft files, a provenance manifest, a human-rating CSV template, and an experiment summary. It does not invent quality scores or claim that memory improves quality; reviewers complete the rubric. See [Content-quality evaluation](docs/content-evaluation.md).
