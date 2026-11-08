@@ -3,6 +3,7 @@ import argparse
 from .config import db_path, load_env_file, top_k
 from .llm import generate
 from .memory import answer, remember, retrieve
+from .eval import evaluate_cases, load_cases
 from .store import MemoryStore
 
 def main():
@@ -16,6 +17,7 @@ def main():
     forget = sub.add_parser("forget"); forget.add_argument("--user", required=True); forget.add_argument("--memory-id", required=True, type=int)
     history = sub.add_parser("history"); history.add_argument("--user", required=True); history.add_argument("--query", required=True)
     timeline = sub.add_parser("timeline"); timeline.add_argument("--user", required=True); timeline.add_argument("--memory-id", required=True, type=int)
+    evaluate = sub.add_parser("evaluate"); evaluate.add_argument("--user", required=True); evaluate.add_argument("--dataset", required=True); evaluate.add_argument("--mode", choices=["lexical", "semantic", "hybrid"], default="hybrid"); evaluate.add_argument("--k", type=int, default=5); evaluate.add_argument("--output")
     args = parser.parse_args()
     store = MemoryStore(db_path())
     if args.command == "add":
@@ -38,6 +40,15 @@ def main():
     elif args.command == "timeline":
         for item in store.memory_history(args.user, args.memory_id):
             print(f"[{item['id']}] {item['status']} | {item['created_at']} | {item['content']}")
+    elif args.command == "evaluate":
+        from .llm import embed
+        report = evaluate_cases(store, load_cases(args.dataset), args.user, args.mode, args.k, embed)
+        rendered = __import__("json").dumps(report, indent=2)
+        if args.output:
+            from pathlib import Path
+            Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.output).write_text(rendered + "\n", encoding="utf-8")
+        print(rendered)
 
 if __name__ == "__main__":
     main()
