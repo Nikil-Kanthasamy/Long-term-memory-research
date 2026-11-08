@@ -114,6 +114,8 @@ class MemoryStore:
     def search(self, user_id, query, query_embedding=None, limit=5, as_of=None, mode="hybrid"):
         if mode not in {"lexical", "semantic", "hybrid"}:
             raise ValueError("mode must be lexical, semantic, or hybrid")
+        if mode == "semantic" and query_embedding is None:
+            raise ValueError("semantic retrieval requires a query embedding")
         query_terms = set(_terms(query))
         as_of = as_of or now()
         results = []
