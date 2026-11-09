@@ -61,9 +61,17 @@ Existing draft --> content revise --> Gemini revision --> revised draft
 
 ## Quick start
 
-Configure GEMINI_API_KEY in .env. The content generator sends the prompt to the configured Gemini API. When memory is enabled (the default), retrieved memory text is included in that request. Use --no-memory when a brief should not use or transmit retrieved long-term memory. This flag prevents memory retrieval for this content-generation request; the user's brief and generated draft are still sent to Gemini.
+Configure GEMINI_API_KEY in .env. Content generation uses the configured hosted Gemini API; it is not a local-only workflow.
 
-Before using hosted AI services, review the current Gemini/Google API terms, data-use and retention settings applicable to your account and region. Do not submit secrets, credentials, or sensitive personal information unless you have confirmed that the provider's handling is appropriate for your use case. The project cannot determine your provider-account retention or training settings. Memory retrieval can use semantic embeddings when configured and falls back to lexical retrieval if embeddings are unavailable.
+### Data sent to Gemini and the memory opt-out
+
+- Every generation request sends the content brief (topic, format, audience, tone, length, keywords, and instructions) to Gemini.
+- Memory is enabled by default. Retrieval first attempts to send a query derived from the topic, audience, format, and keywords to the configured Gemini embedding endpoint. When retrieval succeeds, selected memory snippets are included in the generation prompt sent to Gemini. If embedding retrieval fails, the existing retrieval layer falls back to lexical search.
+- `--no-memory` skips memory retrieval and the embedding request, and no stored memory snippets are included in the generation prompt. It does **not** make generation local or prevent the content brief from being sent to Gemini.
+- `--review` sends the generated draft to Gemini again in a separate editorial-review request. `content revise` sends the input draft and revision instructions to Gemini. The generated draft is a response from the creation request; it is written to a local file only when `--output` is supplied.
+- The application does not control account-specific provider retention, logging, or model-improvement settings. Before use, review the current Gemini API terms, privacy notices, and data-handling settings that apply to your account and region. Do not submit secrets, credentials, or sensitive personal information unless you have confirmed that the provider's handling is appropriate for your use case.
+
+Keep `.env` local and never commit API keys or real memory data.
 
 Generate a blog post with memory context:
 
