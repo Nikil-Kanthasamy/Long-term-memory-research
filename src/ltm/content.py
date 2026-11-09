@@ -134,15 +134,18 @@ DRAFT:
 """ + text.strip()
     raw = generator(prompt, system="You are a careful editorial reviewer. Return valid JSON only.")
     try:
-        start, end = raw.find("{"), raw.rfind("}")
-        parsed = __import__("json").loads(raw[start:end + 1]) if start >= 0 and end > start else None
+        if isinstance(raw, str):
+            start, end = raw.find("{"), raw.rfind("}")
+            parsed = json.loads(raw[start:end + 1]) if start >= 0 and end > start else None
+        else:
+            parsed = None
         if (isinstance(parsed, dict)
                 and set(parsed) == set(REVIEW_FIELDS)
                 and all(isinstance(parsed.get(key), str) for key in REVIEW_FIELDS[:5])
                 and isinstance(parsed.get("improvements"), list)
                 and all(isinstance(item, str) for item in parsed["improvements"])):
             return {key: parsed[key] for key in REVIEW_FIELDS}
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError):
         pass
     return {"editorial_notes": str(raw).strip(), "structured": False}
 
