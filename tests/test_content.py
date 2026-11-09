@@ -78,7 +78,9 @@ class ContentCreationTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 main()
         self.assertIn("--no-memory", output.getvalue())
-        self.assertIn("Do not retrieve or send", output.getvalue())
+        self.assertIn("by default", output.getvalue())
+        self.assertIn("Skip memory retrieval", output.getvalue())
+        self.assertIn("short (700)", output.getvalue())
 
     def test_invalid_type_topic_and_length_rejected(self):
         with self.assertRaises(ValueError): build_content_prompt("topic", content_type="unknown")
