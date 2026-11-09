@@ -22,14 +22,20 @@ def main():
     lme = sub.add_parser("longmemeval"); lme.add_argument("--dataset", required=True); lme.add_argument("--k", type=int, default=5); lme.add_argument("--limit", type=int); lme.add_argument("--output", default="results/longmemeval_retrieval.json"); lme.add_argument("--generate-answers", action="store_true"); lme.add_argument("--predictions", default="results/longmemeval_hypotheses.jsonl")
     content = sub.add_parser("content", help="Create or revise multi-format content using long-term memory")
     content_sub = content.add_subparsers(dest="content_action", required=True)
-    create = content_sub.add_parser("create", help="Generate a new content draft")
+    create = content_sub.add_parser(
+        "create",
+        help="Generate a draft (memory enabled by default)",
+        description="Generate content using retrieved user-scoped memories by default. Pass --no-memory to skip retrieval.",
+    )
     create.add_argument("--user", required=True); create.add_argument("--topic", required=True)
     create.add_argument("--type", dest="content_type", choices=["blog", "article", "social", "email", "newsletter", "report", "script", "product"], default="blog")
     create.add_argument("--audience", default="general readers"); create.add_argument("--tone", default="professional")
-    create.add_argument("--length", choices=["short", "medium", "long"], default="medium")
+    create.add_argument("--length", choices=["short", "medium", "long"], default="medium",
+                        help="Output budget: short (700), medium (1600), or long (3000) tokens")
     create.add_argument("--keywords", nargs="*", default=[]); create.add_argument("--instructions", default="")
     create.add_argument("--k", type=int, default=5)
-    create.add_argument("--no-memory", action="store_true", help="Do not retrieve or send long-term memories to Gemini")
+    create.add_argument("--no-memory", action="store_true",
+                        help="Skip memory retrieval and exclude stored memories (the brief is still sent to Gemini)")
     create.add_argument("--output"); create.add_argument("--review", action="store_true", help="Request a separate editorial review")
     revise = content_sub.add_parser("revise", help="Revise an existing text or Markdown draft")
     revise.add_argument("--input", required=True); revise.add_argument("--instructions", required=True); revise.add_argument("--output")
