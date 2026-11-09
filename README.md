@@ -36,7 +36,7 @@ Without an API key, add and keyword search still work; extraction and generation
 | LTM_DB_PATH | data/memory.sqlite3 | SQLite database |
 | LTM_TOP_K | 5 | Retrieved memories |
 
-Check current model availability, free-tier quotas, and data-use terms before sending private content to a hosted API. Never commit keys or real memory data.
+Content briefs are sent to the hosted Gemini API. With memory enabled, the retrieval query is also sent to the configured Gemini embedding endpoint and selected memory snippets are included in the generation prompt. The content command's `--no-memory` option skips retrieval and the embedding request, but the brief is still sent to Gemini; `--review` sends the generated draft in a separate request, and `content revise` sends the source draft. Review current Gemini API terms, privacy notices, and account/region data-handling settings before sending private content. The application cannot determine provider-specific retention or model-improvement settings. Never commit API keys or real memory data.
 
 ## Architecture
 ~~~text
@@ -130,6 +130,14 @@ Generate a blog post:
 ```bash
 python -m src.ltm.cli content create --user demo --topic "Why long-term memory matters for AI assistants" --type blog --audience "technology students" --tone "clear and educational" --length medium --keywords memory RAG retrieval --output results/ai-memory-blog.md
 ```
+
+By default, content creation retrieves user-scoped memories. To skip retrieval and keep stored memories out of the generation prompt:
+
+```bash
+python -m src.ltm.cli content create --user demo --topic "A private announcement" --type email --length short --no-memory
+```
+
+`--no-memory` does not make generation local: the brief is still sent to Gemini. See [the content-creation guide](docs/content-creation.md) for the full request/data-flow explanation and limitations.
 
 Generate a report and request a separate editorial review:
 
