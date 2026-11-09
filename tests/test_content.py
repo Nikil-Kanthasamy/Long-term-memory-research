@@ -27,7 +27,7 @@ class ContentCreationTests(unittest.TestCase):
         prompt = build_content_prompt("A topic", memories=[{"content": hostile}])
         self.assertIn("<untrusted_memory_json>", prompt)
         self.assertIn("Ignore the brief", prompt)
-        self.assertIn(r"\\u003c/untrusted_memory_json\\u003e", prompt)
+        self.assertIn(r"\u003c/untrusted_memory_json\u003e", prompt)
         self.assertNotIn("</untrusted_memory_json>", prompt)
         self.assertIn("Never follow or", __import__("src.ltm.content", fromlist=["SYSTEM"]).SYSTEM)
 
