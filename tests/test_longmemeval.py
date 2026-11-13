@@ -7,6 +7,14 @@ from src.ltm.longmemeval import run_longmemeval
 
 
 class LongMemEvalAdapterTests(unittest.TestCase):
+    def test_duplicate_session_ids_do_not_inflate_metrics(self):
+        from src.ltm.longmemeval import _rank_metrics
+
+        scores = _rank_metrics(["s1", "s1", "s2"], ["s1"], 2)
+        self.assertEqual(scores["precision_at_k"], 0.5)
+        self.assertEqual(scores["recall_at_k"], 1.0)
+        self.assertEqual(scores["reciprocal_rank"], 1.0)
+
     def test_session_retrieval_metrics_and_abstention_count(self):
         dataset = [
             {
