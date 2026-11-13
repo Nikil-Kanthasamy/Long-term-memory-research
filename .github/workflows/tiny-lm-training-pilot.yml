@@ -1,0 +1,40 @@
+name: tiny LM WikiText-2 training pilot
+
+on:
+  push:
+    branches: ["research/long-term-memory-starter"]
+    paths:
+      - ".github/workflows/tiny-lm-training-pilot.yml"
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU PyTorch and dataset loader
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-tiny-lm-data.txt
+      - name: Download and prepare WikiText-2
+        run: python scripts/prepare_wikitext.py --output-dir data/wikitext-2
+      - name: Train from random initialization
+        run: |
+          python scripts/train_tiny_lm.py             --input data/wikitext-2/train.txt             --validation-input data/wikitext-2/validation.txt             --output-dir models/tiny-memory-lm             --steps 100 --batch-size 8 --block-size 128             --d-model 128 --layers 2 --heads 4             --eval-interval 25 --device cpu | tee training.log
+      - name: Smoke-test retrieved memory with trained checkpoint
+        run: |
+          python -c "from src.ltm.store import MemoryStore; s=MemoryStore('data/pilot-memory.sqlite3'); t=s.add_turn('pilot','The experiment is training a tiny Transformer with persistent memory.'); s.add_memory('pilot','The experiment is training a tiny Transformer with persistent memory.', category='project', source_turn_id=t)"
+          python scripts/chat_tiny_lm.py             --checkpoint models/tiny-memory-lm/best.pt             --database data/pilot-memory.sqlite3             --user pilot             --question "What is this experiment about?"             --max-new-tokens 32 --temperature 0.8 | tee memory-chat-smoke.txt
+      - name: Upload checkpoint, training log, and corpus provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiny-memory-lm-wikitext2-pilot-${{ github.run_id }}
+          path: |
+            models/tiny-memory-lm/*.pt
+            training.log
+            memory-chat-smoke.txt
+            data/wikitext-2/PROVENANCE.txt
+          retention-days: 30
