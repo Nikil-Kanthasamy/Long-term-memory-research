@@ -54,7 +54,15 @@ python scripts/train_tiny_lm.py \
 
 The starter corpus is the public WikiText-2 raw split from Salesforce/Hugging Face. Its dataset card describes it as Wikipedia Good/Featured article text and lists CC BY-SA 4.0; retain attribution and comply with the share-alike terms for any distributed adaptations or outputs where applicable. The separate validation split is preserved rather than randomly mixing validation text into training. The test split is prepared but not used for model selection. [Dataset card](https://huggingface.co/datasets/Salesforce/wikitext).
 
-The script prints parameter count, device, corpus hash, train loss, and validation loss. It saves `best.pt` and `final.pt`. Model checkpoints and corpora should remain local and must not be committed to Git.
+The script prints parameter count, device, corpus hashes, train loss, and validation loss. It saves `best.pt` and `final.pt`. Evaluate the untouched test split with:
+
+```bash
+python scripts/evaluate_tiny_lm.py \
+  --checkpoint models/tiny-memory-lm/best.pt \
+  --input data/wikitext-2/test.txt
+```
+
+The evaluator reports next-byte cross-entropy and byte-level perplexity. These are language-modeling metrics, not conversational QA accuracy. Model checkpoints and corpora should remain local and must not be committed to Git.
 
 ## Chat with retrieved long-term memory
 
@@ -74,7 +82,7 @@ The `--remember` option explicitly stores the question text as a conversation me
 
 1. A next-byte language model is not automatically a helpful chat assistant. It needs high-quality conversational/instruction training examples and careful evaluation.
 2. The memory mechanism is retrieval-augmented context, not weight modification or online learning. This separation makes memory editable, user-scoped, inspectable, and deletable.
-3. The first prototype uses lexical retrieval. BM25 integration and dense retrieval can be added after validating the base model.
+3. The first prototype uses lexical retrieval. BM25 integration and dense retrieval can be added after validating the base model. The GitHub Actions tiny-LM workflow also runs a short CPU training pilot on WikiText-2, evaluates its held-out test split, smoke-tests memory-backed inference, and uploads a 30-day artifact.
 4. No corpus is bundled. Dataset selection, licensing, filtering, deduplication, language coverage, and held-out splits must be handled before serious training.
 5. CPU training may be slow. A GPU is recommended for larger corpora or longer runs.
 6. A tiny model may memorize its training data. Do not train on sensitive user conversations without explicit informed consent, data minimization, and a deletion policy.
