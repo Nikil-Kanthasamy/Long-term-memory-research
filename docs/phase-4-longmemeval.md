@@ -83,3 +83,6 @@ A manual workflow is available at **Actions → LongMemEval retrieval benchmark 
 - The dataset and result are not committed to the repository. The workflow is manual-only and does not run on every push.
 
 Use the artifact to inspect aggregate metrics and per-question retrieval results. Record the workflow run URL, commit SHA, limit, K, and artifact together when reporting results.
+## Recorded baseline
+
+The full 500-question S split retrieval-only run completed. See [LongMemEval S retrieval baseline results](longmemeval-s-retrieval-results.md) for metrics, question-type breakdown, run provenance, limitations, and next experiments.
