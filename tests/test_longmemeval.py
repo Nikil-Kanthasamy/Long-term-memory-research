@@ -7,6 +7,40 @@ from src.ltm.longmemeval import run_longmemeval
 
 
 class LongMemEvalAdapterTests(unittest.TestCase):
+    def test_bm25_prefers_relevant_document_and_normalizes_length(self):
+        from src.ltm.longmemeval import _bm25_scores
+
+        docs = [
+            "The user prefers quiet cafes and quiet restaurants.",
+            "The user prefers quiet cafes.",
+            "A completely unrelated discussion about astronomy.",
+        ]
+        scores = _bm25_scores("Which cafes does the user prefer?", docs)
+        self.assertGreater(scores[1], scores[2])
+        self.assertGreater(scores[0], 0.0)
+        self.assertEqual(scores[2], 0.0)
+
+    def test_longmemeval_bm25_mode_is_reported(self):
+        dataset = [{
+            "question_id": "bm25-case",
+            "question_type": "single-session-user",
+            "question": "Which framework is used for vision training?",
+            "question_date": "2024/01/01",
+            "haystack_session_ids": ["gold", "distractor"],
+            "haystack_dates": ["2023/12/01", "2023/12/02"],
+            "haystack_sessions": [
+                [{"role": "user", "content": "I use PyTorch for vision model training."}],
+                [{"role": "user", "content": "I enjoy baking bread."}],
+            ],
+            "answer_session_ids": ["gold"],
+        }]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "bm25-fixture.json"
+            path.write_text(json.dumps(dataset), encoding="utf-8")
+            report = run_longmemeval(path, k=1, retrieval_mode="bm25")
+        self.assertEqual(report["retrieval_mode"], "bm25")
+        self.assertEqual(report["results"][0]["retrieval_results"][0]["session_id"], "gold")
+
     def test_duplicate_session_ids_do_not_inflate_metrics(self):
         from src.ltm.longmemeval import _rank_metrics
 
