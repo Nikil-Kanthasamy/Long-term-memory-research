@@ -64,6 +64,20 @@ python scripts/evaluate_tiny_lm.py \
 
 The evaluator reports next-byte cross-entropy and byte-level perplexity. These are language-modeling metrics, not conversational QA accuracy. Model checkpoints and corpora should remain local and must not be committed to Git.
 
+## Supervised instruction tuning
+
+The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. A tiny synthetic example set is included only to test the pipeline; it is not enough to create a capable assistant.
+
+```bash
+python scripts/train_tiny_lm_sft.py \\
+  --input examples/tiny_lm_sft_demo.jsonl \\
+  --checkpoint models/tiny-memory-lm/best.pt \\
+  --output models/tiny-memory-lm-instruct.pt \\
+  --steps 300
+```
+
+For real experiments, replace the demo with a substantially larger, diverse, reviewed, and appropriately licensed instruction dataset. Keep a held-out prompt/response set and measure exact-answer accuracy, abstention, and memory-vs-no-memory performance. Never treat the demo training loss as evidence of general assistant capability.
+
 ## Chat with retrieved long-term memory
 
 Add an explicitly curated memory using the existing project CLI if the Gemini extraction key is configured, or insert an approved memory directly with the existing `MemoryStore` API. Then run:
