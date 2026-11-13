@@ -8,7 +8,7 @@ Compare drafts from the same brief under three conditions:
 2. **memory** — user-scoped long-term memories are supplied as reference context.
 3. **memory_plus_review** — a memory-assisted draft receives a separate advisory editorial review. The draft is not edited by that review.
 
-The harness does not assign quality scores automatically. It creates draft artifacts, a provenance manifest, and a human-rating CSV template.
+The harness does not assign quality scores automatically. It creates draft artifacts, a private provenance manifest, and a human-rating CSV template. Draft filenames use blind IDs only, and the rating rows are shuffled with a reproducible seed. Keep the manifest private because it maps blind IDs to conditions and memory provenance.
 
 ## Dataset
 
@@ -31,7 +31,7 @@ Provide a non-empty JSON array. Each case requires a topic; other fields are opt
 
 ## Run
 
-~~~bash
+~~~
 python -m src.ltm.cli content evaluate --user demo --dataset data/content_eval.json --output-dir results/content-eval
 ~~~
 
@@ -39,16 +39,14 @@ For a two-condition comparison, add `--no-review`. The default makes three draft
 
 ## Outputs
 
-- `drafts/`: generated Markdown drafts.
-- `manifest.jsonl`: blind draft ID, case, condition, draft path, memory count and memory IDs, plus advisory review where applicable.
-- `ratings_template.csv`: blind draft IDs and empty rating columns.
-- `summary.json`: experiment size and rating dimensions.
-
-The blind IDs are sequential in this starter template. A study coordinator should randomize presentation order and keep the manifest mapping away from reviewers; this tool does not implement full randomization.
+- `drafts/D0001.md`, etc.: generated Markdown drafts with blind IDs only.
+- `manifest.jsonl`: blind draft ID, case, condition, draft path, memory count and memory IDs, plus advisory review where applicable. This file is for the study coordinator only.
+- `ratings_template.csv`: shuffled blind draft IDs, reviewer ID field, and empty rating columns. Add duplicate rows for each additional reviewer.
+- `summary.json`: experiment size, conditions, rating dimensions and randomization seed.
 
 ## Human rating rubric
 
-Rate these dimensions from 1 (poor) to 5 (excellent): relevance to brief, personalization, factual consistency with supplied evidence, style consistency, completeness, and readability. For `unsupported_claims`, enter a count of distinct factual claims not supported by the brief or memory evidence. Flag citations, statistics, quotations, product specifications, and concrete factual assertions for verification.
+Rate these dimensions from 1 (poor) to 5 (excellent): relevance to brief, personalization, factual consistency with supplied context, style consistency, completeness, and readability. For `unsupported_claims`, enter a count of distinct factual claims not supported by the brief or memory evidence. Flag citations, statistics, quotations, product specifications, and concrete factual assertions for verification.
 
 | Dimension | 1 | 3 | 5 |
 |---|---|---|---|
@@ -61,9 +59,19 @@ Rate these dimensions from 1 (poor) to 5 (excellent): relevance to brief, person
 
 ## Analysis
 
-Compare paired drafts from the same case. Report per-condition means and dispersion for the six 1–5 dimensions, mean unsupported-claim counts, sample size, missing ratings, reviewer count, rubric, and inter-rater agreement. Do not claim improvement unless the data supports it. This starter does not calculate significance or inter-rater agreement.
+Complete ratings independently, adding a distinct `reviewer_id` for each reviewer. Then run:
 
-The third condition measures the addition of an editorial review artifact, not the impact of applying its recommendations. A future fourth condition can revise the draft using review recommendations and rate that revised draft separately.
+~~~
+python scripts/analyze_content_eval.py --ratings results/content-eval/ratings_template.csv --manifest results/content-eval/manifest.jsonl --output results/content-eval/analysis.json
+~~~
+
+The script reports per-condition means and sample standard deviations for each dimension, missing ratings, matched case-level mean differences, and descriptive exact/within-one reviewer agreement where reviewer IDs are supplied. Multiple reviewers are averaged within each draft before paired comparisons.
+
+Do not claim improvement unless the data supports it. The analysis does not calculate statistical significance, confidence intervals, or chance-corrected inter-rater reliability. Report sample size, rating rubric, reviewer count, missingness, and model/version.
+
+## Pilot protocol
+
+See [Content-quality pilot study](content-evaluation-pilot.md) for the eight-brief synthetic pilot, memory seeding, API-call budget, blinding protocol, and analysis workflow.
 
 ## Limitations and data handling
 
