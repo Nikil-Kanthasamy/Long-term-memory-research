@@ -29,3 +29,9 @@ jobs:
         run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Run full test suite including tiny model
         run: python -m unittest discover -s tests -v
+      - name: Smoke-test training and memory-backed inference
+        run: |
+          cat README.md docs/from-scratch-memory-lm.md > /tmp/tiny-lm-smoke.txt
+          python scripts/train_tiny_lm.py --input /tmp/tiny-lm-smoke.txt --output-dir /tmp/tiny-lm-checkpoint --steps 10 --batch-size 2 --block-size 32 --d-model 32 --layers 1 --heads 4 --eval-interval 5 --device cpu
+          python -c "from src.ltm.store import MemoryStore; s=MemoryStore('/tmp/tiny-lm-memory.sqlite3'); t=s.add_turn('ci-smoke','The project is a from-scratch memory language model.'); s.add_memory('ci-smoke','The project is a from-scratch memory language model.', category='project', source_turn_id=t)"
+          python scripts/chat_tiny_lm.py --checkpoint /tmp/tiny-lm-checkpoint/best.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 4 --temperature 1.0
