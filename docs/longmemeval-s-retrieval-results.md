@@ -64,3 +64,8 @@ Question-type counts above are scored cases; abstention cases are not included i
 3. Prioritize preference, multi-session, and temporal-reasoning slices for error analysis.
 4. Evaluate answer generation separately with a fixed reader model and the official LongMemEval judging script.
 5. Preserve the dataset version, code SHA, retrieval settings, and artifact for every run.
+
+
+## BM25 comparison status
+
+The benchmark now supports an Okapi BM25 session-ranking mode alongside the original lexical Jaccard baseline. The GitHub Actions workflow runs both modes against the same downloaded LongMemEval S split, with the same question limit and K value, and uploads both machine-readable reports in one artifact. The comparison metrics will be added here after that run completes. BM25 uses standard inverse-document-frequency weighting and document-length normalization; the existing 0.05 importance bonus is applied only to documents with a positive BM25 match.
