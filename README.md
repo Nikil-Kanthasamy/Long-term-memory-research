@@ -173,3 +173,23 @@ python scripts/analyze_content_eval.py --ratings results/content-eval-pilot/rati
 ~~~
 
 The default three-condition run makes 24 draft-generation requests plus 8 editorial-review requests. Add `--no-review` to use two conditions (16 draft requests). Complete ratings with independent reviewers before running the analysis script. The pilot is exploratory and does not establish quality improvement or statistical significance. See [pilot protocol and rubric](docs/content-evaluation-pilot.md).
+
+
+## Phase 6: from-scratch neural language model with long-term memory
+
+An optional research path now defines a small decoder-only Transformer trained from random initialization. It uses a fixed 256-token UTF-8 byte tokenizer, local next-token training, and the existing SQLite memory store for retrieval-augmented prompting. It does not download pretrained weights or call a hosted generation API.
+
+Install the optional PyTorch dependency and train on a UTF-8 corpus you have permission to use:
+
+~~~bash
+python -m pip install -r requirements-tiny-lm.txt
+python scripts/train_tiny_lm.py --input data/training_corpus.txt --output-dir models/tiny-memory-lm --steps 3000
+~~~
+
+Then run the locally trained model with user-scoped memory retrieval:
+
+~~~bash
+python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/best.pt --user demo --question "What am I working on?"
+~~~
+
+This first model is a small research prototype, not a frontier-quality chat model. It needs a suitable training corpus and instruction tuning before it can answer reliably. Model checkpoints and corpora are git-ignored/not to be committed. See [From-scratch memory LLM plan](docs/from-scratch-memory-lm.md) for architecture, limitations, data governance, and milestones.
