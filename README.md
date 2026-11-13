@@ -183,7 +183,9 @@ Install the optional PyTorch dependency and train on a UTF-8 corpus you have per
 
 ~~~bash
 python -m pip install -r requirements-tiny-lm.txt
-python scripts/train_tiny_lm.py --input data/training_corpus.txt --output-dir models/tiny-memory-lm --steps 3000
+python -m pip install -r requirements-tiny-lm-data.txt
+python scripts/prepare_wikitext.py --output-dir data/wikitext-2
+python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm --steps 3000
 ~~~
 
 Then run the locally trained model with user-scoped memory retrieval:
