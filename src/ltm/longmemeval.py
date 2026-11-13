@@ -85,7 +85,11 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
             memory_to_session = {memory_id: id_to_session[index]
                                  for index, memory_id in enumerate(memory_ids)}
             query = str(item.get("question", ""))
-            ranked_memories = store.search(qid, query, limit=k, mode="lexical")
+            # Retrieve the full session set before de-duplicating, otherwise
+            # repeated IDs inside the first K rows could hide later unique sessions.
+            ranked_memories = store.search(
+                qid, query, limit=max(1, len(session_ids)), mode="lexical"
+            )
             # Some LongMemEval S examples repeat a session ID. Preserve the
             # highest-ranked occurrence and score each logical session once.
             unique_ranked_memories = []
@@ -95,6 +99,7 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
                 if session_id not in seen_session_ids:
                     seen_session_ids.add(session_id)
                     unique_ranked_memories.append((row, session_id))
+            unique_ranked_memories = unique_ranked_memories[:k]
             ranked_sessions = [session_id for _, session_id in unique_ranked_memories]
             gold = item.get("answer_session_ids") or []
             metrics = None if qid.endswith("_abs") else _rank_metrics(ranked_sessions, gold, k)
