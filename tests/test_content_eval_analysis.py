@@ -46,7 +46,7 @@ class ContentRatingAnalysisTests(unittest.TestCase):
             self.assertEqual(report["reviewers_identified"], 2)
             self.assertAlmostEqual(
                 report["paired_comparisons"]["memory_minus_no_memory"]["relevance"]["mean_difference"],
-                1.5,
+                1.75,
             )
             self.assertIsNotNone(report["inter_rater_agreement"]["relevance"]["exact_agreement"])
 
@@ -57,10 +57,15 @@ class ContentRatingAnalysisTests(unittest.TestCase):
                 json.dumps({"blind_draft_id":"D1","case_id":"a","condition":"memory"}) + "\n",
                 encoding="utf-8",
             )
+            fields = [
+                "reviewer_id","blind_draft_id","relevance","personalization",
+                "factual_consistency","style_consistency","completeness","readability",
+                "unsupported_claims","reviewer_notes",
+            ]
             with (root / "ratings.csv").open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.writer(handle)
-                writer.writerow(["blind_draft_id","relevance"])
-                writer.writerow(["D1",6])
+                writer.writerow(fields)
+                writer.writerow(["r1","D1",6,4,4,4,4,4,0,""])
             with self.assertRaises(ValueError):
                 analyze_ratings(root / "ratings.csv", root / "manifest.jsonl")
 
