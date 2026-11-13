@@ -1,0 +1,2 @@
+# Optional public starter corpus loader.
+datasets>=3.0

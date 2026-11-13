@@ -1,0 +1,2 @@
+# Runtime uses only the Python standard library.
+# No GPU packages are required; memory storage will not compete with model training.

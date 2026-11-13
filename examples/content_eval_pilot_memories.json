@@ -1,0 +1,50 @@
+[
+  {
+    "content": "For accessibility work, this student project prioritizes keyboard navigation, visible focus states, readable contrast, and descriptive labels. No formal accessibility audit has been completed.",
+    "category": "project_context",
+    "importance": 0.8,
+    "confidence": 1
+  },
+  {
+    "content": "The image-classification experiment uses Python and PyTorch. The dataset and evaluation results are not finalized; do not state an accuracy score or sample count.",
+    "category": "project_context",
+    "importance": 0.8,
+    "confidence": 1
+  },
+  {
+    "content": "The student learning community prefers concise monthly updates with a friendly opening, clear headings, and one practical next step. Avoid emojis.",
+    "category": "style_preference",
+    "importance": 0.7,
+    "confidence": 1
+  },
+  {
+    "content": "The community workshop is intended for beginners and should feel welcoming. Date, venue, price, registration URL, and capacity have not been decided.",
+    "category": "project_context",
+    "importance": 0.8,
+    "confidence": 1
+  },
+  {
+    "content": "The study-planning app is an early prototype with task lists and local SQLite storage. Offline-first behavior is being explored; no security certification, public release, or external integrations are confirmed.",
+    "category": "project_context",
+    "importance": 0.9,
+    "confidence": 1
+  },
+  {
+    "content": "When writing to project teammates, use a warm, respectful, direct tone and ask for a specific status or blocker rather than a vague update.",
+    "category": "style_preference",
+    "importance": 0.7,
+    "confidence": 1
+  },
+  {
+    "content": "The productivity prototype stores local data in SQLite. Cloud synchronization is not implemented, and offline-first design introduces synchronization and conflict-resolution trade-offs if sync is added later.",
+    "category": "project_context",
+    "importance": 0.8,
+    "confidence": 1
+  },
+  {
+    "content": "The study assistant is a prototype for demonstrating task organization and saved study context. It is not a deployed autonomous tutor and should not be described as one.",
+    "category": "project_context",
+    "importance": 0.8,
+    "confidence": 1
+  }
+]
