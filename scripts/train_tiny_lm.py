@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, TinyLMConfig
+from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
 
 
 def batches(data, batch_size, block_size, device):
@@ -20,6 +20,7 @@ def batches(data, batch_size, block_size, device):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="UTF-8 plain-text training corpus")
+    parser.add_argument("--validation-input", help="Separate held-out validation text file")
     parser.add_argument("--output-dir", default="models/tiny-memory-lm")
     parser.add_argument("--steps", type=int, default=3000)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -45,11 +46,18 @@ def main():
     raw = corpus_path.read_bytes()
     if len(raw) < args.block_size * 4:
         parser.error("corpus is too small; provide at least 4 * block-size bytes")
-    data = torch.tensor(list(raw), dtype=torch.long)
-    split = int(len(data) * 0.9)
-    train_data, val_data = data[:split], data[split:]
+    train_data = torch.tensor(list(raw), dtype=torch.long)
+    if args.validation_input:
+        validation_raw = Path(args.validation_input).read_bytes()
+        val_data = torch.tensor(list(validation_raw), dtype=torch.long)
+    else:
+        split = int(len(train_data) * 0.9)
+        val_data = train_data[split:]
+        train_data = train_data[:split]
+        validation_raw = bytes(val_data.tolist())
     if len(val_data) <= args.block_size or len(train_data) <= args.block_size:
-        parser.error("corpus must contain enough bytes for train and validation windows")
+        parser.error("training and validation files must each contain more than block-size bytes")
+    validation_sha256 = hashlib.sha256(validation_raw).hexdigest()
 
     config = TinyLMConfig(
         block_size=args.block_size, d_model=args.d_model,
@@ -73,10 +81,11 @@ def main():
         return sum(values) / len(values)
 
     print(json.dumps({
-        "device": device, "corpus_bytes": len(raw),
+        "device": device, "training_bytes": len(raw), "validation_bytes": len(validation_raw),
         "parameters": sum(p.numel() for p in model.parameters()),
         "config": config.__dict__,
         "corpus_sha256": hashlib.sha256(raw).hexdigest(),
+        "validation_sha256": validation_sha256,
     }, indent=2))
     for step in range(1, args.steps + 1):
         model.train()
@@ -98,6 +107,7 @@ def main():
                     "step": step,
                     "best_val_loss": best_val,
                     "corpus_sha256": hashlib.sha256(raw).hexdigest(),
+                    "validation_sha256": validation_sha256,
                     "tokenizer": "utf8-byte-v1",
                 }, output_dir / "best.pt")
     torch.save({
@@ -105,6 +115,7 @@ def main():
         "step": args.steps,
         "best_val_loss": best_val,
         "corpus_sha256": hashlib.sha256(raw).hexdigest(),
+        "validation_sha256": validation_sha256,
         "tokenizer": "utf8-byte-v1",
     }, output_dir / "final.pt")
     print(f"Saved checkpoints to {output_dir}")
