@@ -33,8 +33,10 @@ class ContentEvaluationTests(unittest.TestCase):
             self.assertEqual(summary["drafts"], 3)
             self.assertTrue(summary["manifest_is_private"])
             self.assertEqual(retriever.call_count, 2)
-            self.assertTrue((Path(tmp) / "drafts/D0001.md").exists())
             self.assertFalse((Path(tmp) / "drafts/case-001-no_memory.md").exists())
+            draft_files = sorted((Path(tmp) / "drafts").glob("*.md"))
+            self.assertEqual(len(draft_files), 3)
+            self.assertTrue(all(path.stem.startswith("D") for path in draft_files))
             with (Path(tmp) / "ratings_template.csv").open(encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))
             self.assertEqual(len(rows), 3)
