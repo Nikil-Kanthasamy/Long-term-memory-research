@@ -40,14 +40,19 @@ Python 3.10+ is recommended. Install the optional dependency:
 python -m pip install -r requirements-tiny-lm.txt
 ```
 
-Prepare a UTF-8 plain-text corpus that you have permission to use. For the first smoke test, use a small, clean corpus with clear source provenance. For meaningful results, use a much larger, diverse corpus with held-out validation text. Do not use private conversation memories as training data by default.
+Use a UTF-8 plain-text corpus that you have permission to use. A reproducible starter corpus is prepared by the included WikiText-2 downloader. For meaningful general language ability, a much larger and more diverse corpus will be needed. Keep held-out validation and test splits separate. Do not use private conversation memories as training data by default.
 
 ```bash
+python -m pip install -r requirements-tiny-lm-data.txt
+python scripts/prepare_wikitext.py --output-dir data/wikitext-2
 python scripts/train_tiny_lm.py \
-  --input data/training_corpus.txt \
+  --input data/wikitext-2/train.txt \
+  --validation-input data/wikitext-2/validation.txt \
   --output-dir models/tiny-memory-lm \
   --steps 3000 --device auto
 ```
+
+The starter corpus is the public WikiText-2 raw split from Salesforce/Hugging Face. Its dataset card describes it as Wikipedia Good/Featured article text and lists CC BY-SA 4.0; retain attribution and comply with the share-alike terms for any distributed adaptations or outputs where applicable. The separate validation split is preserved rather than randomly mixing validation text into training. The test split is prepared but not used for model selection. [Dataset card](https://huggingface.co/datasets/Salesforce/wikitext).
 
 The script prints parameter count, device, corpus hash, train loss, and validation loss. It saves `best.pt` and `final.pt`. Model checkpoints and corpora should remain local and must not be committed to Git.
 
