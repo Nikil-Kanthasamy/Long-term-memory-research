@@ -24,6 +24,7 @@ class TinyLanguageModelTests(unittest.TestCase):
         self.assertEqual(tuple(generated.shape), (1, 7))
 
 
+@unittest.skipUnless(importlib.util.find_spec("torch"), "optional PyTorch dependency is not installed")
 class TinyLMSupervisedTuningTests(unittest.TestCase):
     def test_prompt_labels_are_masked_and_answer_labels_remain(self):
         from scripts.train_tiny_lm_sft import encode_example
