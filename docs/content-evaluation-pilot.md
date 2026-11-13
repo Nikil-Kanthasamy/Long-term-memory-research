@@ -33,7 +33,7 @@ Default mode generates 24 drafts and makes 8 additional editorial-review request
 
 ## Blinding and ratings
 
-Draft filenames are blind IDs only (for example, `drafts/D0001.md`); they do not expose the condition. The ratings CSV order is shuffled reproducibly using seed 2026. Keep `manifest.jsonl` private: it reveals the condition and memory provenance. Do not share it with reviewers.
+Draft filenames use randomly assigned blind IDs (for example, `drafts/D0017.md`); they do not expose the condition. The ratings CSV order is also shuffled reproducibly. Keep `manifest.jsonl` and `summary.json` private: the manifest reveals condition and memory provenance, while the summary records the randomization seed. Share only the draft files and rating sheet with reviewers.
 
 For each reviewer, duplicate the CSV rows and fill a distinct `reviewer_id`. Each reviewer should rate every draft independently. Rate relevance, personalization, factual consistency, style consistency, completeness, and readability from 1 (poor) to 5 (excellent). Enter a non-negative integer count for `unsupported_claims`. Leave a cell blank if the reviewer cannot rate that dimension; do not guess.
 
