@@ -1,5 +1,7 @@
 """LongMemEval session-retrieval benchmark adapter and optional RAG reader."""
 import json
+import math
+import re
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -37,8 +39,45 @@ def _rank_metrics(ranked, relevant, k):
     }
 
 
-def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
-    """Run session-level lexical retrieval; optionally produce QA hypotheses JSONL."""
+def _bm25_scores(query, documents, k1=1.5, b=0.75):
+    """Return Okapi BM25 scores aligned with documents (standard IDF and length norm)."""
+    tokenize = lambda value: re.findall(r"[a-z0-9_]+", str(value).lower())
+    query_terms = set(tokenize(query))
+    tokenized = [tokenize(document) for document in documents]
+    count = len(tokenized)
+    if not count or not query_terms:
+        return [0.0] * count
+    lengths = [len(tokens) for tokens in tokenized]
+    average_length = sum(lengths) / count or 1.0
+    document_frequency = {
+        term: sum(1 for tokens in tokenized if term in set(tokens))
+        for term in query_terms
+    }
+    scores = []
+    for tokens, length in zip(tokenized, lengths):
+        frequencies = {}
+        for term in tokens:
+            frequencies[term] = frequencies.get(term, 0) + 1
+        score = 0.0
+        for term in query_terms:
+            frequency = frequencies.get(term, 0)
+            if not frequency:
+                continue
+            df = document_frequency[term]
+            inverse_document_frequency = math.log(
+                1.0 + (count - df + 0.5) / (df + 0.5)
+            )
+            denominator = frequency + k1 * (1.0 - b + b * length / average_length)
+            score += inverse_document_frequency * frequency * (k1 + 1.0) / denominator
+        scores.append(score)
+    return scores
+
+
+def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False,
+                    retrieval_mode="lexical"):
+    """Run session-level lexical or BM25 retrieval; optionally produce QA hypotheses JSONL."""
+    if retrieval_mode not in {"lexical", "bm25"}:
+        raise ValueError("retrieval_mode must be lexical or bm25")
     if k < 1:
         raise ValueError("k must be at least 1")
     if limit is not None and limit < 1:
@@ -87,9 +126,19 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
             query = str(item.get("question", ""))
             # Retrieve the full session set before de-duplicating, otherwise
             # repeated IDs inside the first K rows could hide later unique sessions.
-            ranked_memories = store.search(
-                qid, query, limit=max(1, len(session_ids)), mode="lexical"
-            )
+            if retrieval_mode == "bm25":
+                candidates = store.active_memories(qid)
+                bm25 = _bm25_scores(query, [row["content"] for row in candidates])
+                ranked_memories = []
+                for row, score in zip(candidates, bm25):
+                    if score > 0:
+                        row["score"] = score + 0.05 * float(row["importance"])
+                        ranked_memories.append(row)
+                ranked_memories.sort(key=lambda row: row["score"], reverse=True)
+            else:
+                ranked_memories = store.search(
+                    qid, query, limit=max(1, len(session_ids)), mode="lexical"
+                )
             # Some LongMemEval S examples repeat a session ID. Preserve the
             # highest-ranked occurrence and score each logical session once.
             unique_ranked_memories = []
@@ -156,7 +205,7 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
     return {
         "benchmark": "LongMemEval",
         "retrieval_granularity": "session",
-        "retrieval_mode": "lexical_jaccard",
+        "retrieval_mode": "bm25" if retrieval_mode == "bm25" else "lexical_jaccard",
         "k": k,
         "questions_total": len(questions),
         "questions_scored": scored,
