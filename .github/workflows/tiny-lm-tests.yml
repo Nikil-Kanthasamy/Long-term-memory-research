@@ -1,0 +1,31 @@
+name: tiny LM model tests
+
+on:
+  push:
+    branches: ["research/long-term-memory-starter"]
+    paths:
+      - "src/ltm/tiny_lm.py"
+      - "scripts/train_tiny_lm.py"
+      - "scripts/chat_tiny_lm.py"
+      - "tests/test_tiny_lm.py"
+      - ".github/workflows/tiny-lm-tests.yml"
+  pull_request:
+    paths:
+      - "src/ltm/tiny_lm.py"
+      - "scripts/train_tiny_lm.py"
+      - "scripts/chat_tiny_lm.py"
+      - "tests/test_tiny_lm.py"
+      - ".github/workflows/tiny-lm-tests.yml"
+
+jobs:
+  tiny-lm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU PyTorch
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run full test suite including tiny model
+        run: python -m unittest discover -s tests -v
