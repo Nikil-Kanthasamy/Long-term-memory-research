@@ -70,7 +70,7 @@ See docs/architecture.md, docs/research-plan.md, and docs/reading-list.md.
 - forget --user ID --memory-id ID: permanently delete one memory.
 
 ## Tests
-~~~bash
+~~~
 python -m unittest discover -s tests -v
 ~~~
 
@@ -80,7 +80,7 @@ Memory is distinct from fine-tuning: it stores task-specific information outside
 
 The advanced engine adds additive database migrations, explicit supersession of outdated facts, validity windows, raw conversation search, and timeline inspection. Existing Phase 1 SQLite databases are migrated automatically when the store initializes.
 
-~~~bash
+~~~
 python -m src.ltm.cli history --user demo --query PyTorch
 python -m src.ltm.cli timeline --user demo --memory-id 1
 ~~~
@@ -89,37 +89,36 @@ A correction can supersede a prior fact only when the extractor identifies its a
 
 ## Phase 3: retrieval evaluation
 
-Compare lexical, semantic, and hybrid retrieval against annotated query-to-memory relevance sets. Reports include Precision@K, Recall@K, MRR, and per-query retrieved IDs. This is an offline retrieval benchmark; semantic/hybrid modes use embeddings when available and hybrid falls back to lexical retrieval.
+Compare lexical, semantic, and hybrid retrieval against annotated query-to-memory relevance sets. Reports include Precision@K, Recall@K, MRR, and per-query retrieved IDs. Semantic/hybrid modes use embeddings when available and hybrid falls back to lexical retrieval.
 
-```bash
+~~~
 python -m src.ltm.cli evaluate --user demo --dataset data/retrieval_eval.json --mode lexical --k 5
 python -m src.ltm.cli evaluate --user demo --dataset data/retrieval_eval.json --mode hybrid --k 5 --output results/hybrid.json
-```
+~~~
 
-See [Phase 3 evaluation guide](docs/phase-3-evaluation.md). GitHub Actions runs the unit test suite on pushes and pull requests. LongMemEval is a next integration target; the current harness does not claim full benchmark compatibility.
+See [Phase 3 evaluation guide](docs/phase-3-evaluation.md). GitHub Actions runs the unit test suite on pushes and pull requests.
 
 ## Phase 4: LongMemEval benchmark
 
 Download the official benchmark (kept local and git-ignored):
 
-```bash
+~~~
 python scripts/download_longmemeval.py --variant s
-```
+~~~
 
 Run session-level retrieval metrics:
 
-```bash
+~~~
 python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 5 --limit 50
-```
+~~~
 
 Optionally generate QA hypotheses with Gemini (one generation request per question):
 
-```bash
+~~~
 python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 5 --limit 10 --generate-answers
-```
+~~~
 
 The adapter reports Precision@K, Recall@K, MRR, Hit@1, and per-question-type results. No-gold-evidence/abstention questions are counted separately and excluded from retrieval averages. Use the official LongMemEval GPT-4o judge script to score generated hypotheses; see [Phase 4 guide](docs/phase-4-longmemeval.md). Retrieval metrics and end-to-end answer accuracy must be reported separately.
-
 
 ## Phase 5: memory-aware multi-format content creation
 
@@ -127,39 +126,50 @@ Create blogs, articles, social posts, emails, newsletters, reports, scripts, and
 
 Generate a blog post:
 
-```bash
+~~~
 python -m src.ltm.cli content create --user demo --topic "Why long-term memory matters for AI assistants" --type blog --audience "technology students" --tone "clear and educational" --length medium --keywords memory RAG retrieval --output results/ai-memory-blog.md
-```
+~~~
 
 By default, content creation retrieves user-scoped memories. To skip retrieval and keep stored memories out of the generation prompt:
 
-```bash
+~~~
 python -m src.ltm.cli content create --user demo --topic "A private announcement" --type email --length short --no-memory
-```
+~~~
 
 `--no-memory` does not make generation local: the brief is still sent to Gemini. See [the content-creation guide](docs/content-creation.md) for the full request/data-flow explanation and limitations.
 
 Generate a report and request a separate editorial review:
 
-```bash
+~~~
 python -m src.ltm.cli content create --user demo --topic "Evaluation of a conversational memory prototype" --type report --audience "research supervisors" --tone formal --length long --review --output results/memory-report.md
-```
+~~~
 
 Revise a draft without overwriting the source:
 
-```bash
+~~~
 python -m src.ltm.cli content revise --input results/ai-memory-blog.md --instructions "Shorten the introduction and add a practical example." --output results/ai-memory-blog-revised.md
-```
+~~~
 
 See [Memory-aware content creation guide](docs/content-creation.md) for architecture, supported formats, design decisions, limitations, and a research evaluation plan. Generated drafts are not automatically stored as factual memories. Human review is required before publication.
-
 
 ## Phase 5.1: content quality evaluation
 
 Compare drafts generated without memory, with retrieved memory, and with memory plus an advisory editorial review:
 
-```bash
+~~~
 python -m src.ltm.cli content evaluate --user demo --dataset data/content_eval.json --output-dir results/content-eval
-```
+~~~
 
-The harness saves draft files, a provenance manifest, a human-rating CSV template, and an experiment summary. It does not invent quality scores or claim that memory improves quality; reviewers complete the rubric. See [Content-quality evaluation](docs/content-evaluation.md).
+The harness saves blind draft files, a private provenance manifest, a shuffled human-rating CSV template, and an experiment summary. It does not invent quality scores or claim that memory improves quality; reviewers complete the rubric. Keep the manifest away from reviewers.
+
+### Reproducible synthetic pilot
+
+A small, synthetic eight-brief pilot and analysis tools are provided:
+
+~~~
+python scripts/seed_content_eval_pilot.py --user content-eval-pilot
+python -m src.ltm.cli content evaluate --user content-eval-pilot --dataset examples/content_eval_pilot.json --output-dir results/content-eval-pilot
+python scripts/analyze_content_eval.py --ratings results/content-eval-pilot/ratings_template.csv --manifest results/content-eval-pilot/manifest.jsonl --output results/content-eval-pilot/analysis.json
+~~~
+
+The default three-condition run makes 24 draft-generation requests plus 8 editorial-review requests. Add `--no-review` to use two conditions (16 draft requests). Complete ratings with independent reviewers before running the analysis script. The pilot is exploratory and does not establish quality improvement or statistical significance. See [pilot protocol and rubric](docs/content-evaluation-pilot.md).
