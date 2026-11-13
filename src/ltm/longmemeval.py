@@ -23,7 +23,10 @@ def _rank_metrics(ranked, relevant, k):
     relevant = set(str(value) for value in relevant)
     if not relevant:
         return None
-    top = [str(value) for value in ranked[:k]]
+    # A cleaned benchmark file can contain repeated session IDs. Count each
+    # logical session only once so duplicate distractors cannot inflate recall.
+    unique_ranked = list(dict.fromkeys(str(value) for value in ranked))
+    top = unique_ranked[:k]
     hits = sum(1 for value in top if value in relevant)
     first = next((i + 1 for i, value in enumerate(top) if value in relevant), None)
     return {
@@ -83,7 +86,16 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
                                  for index, memory_id in enumerate(memory_ids)}
             query = str(item.get("question", ""))
             ranked_memories = store.search(qid, query, limit=k, mode="lexical")
-            ranked_sessions = [memory_to_session[int(row["id"])] for row in ranked_memories]
+            # Some LongMemEval S examples repeat a session ID. Preserve the
+            # highest-ranked occurrence and score each logical session once.
+            unique_ranked_memories = []
+            seen_session_ids = set()
+            for row in ranked_memories:
+                session_id = memory_to_session[int(row["id"])]
+                if session_id not in seen_session_ids:
+                    seen_session_ids.add(session_id)
+                    unique_ranked_memories.append((row, session_id))
+            ranked_sessions = [session_id for _, session_id in unique_ranked_memories]
             gold = item.get("answer_session_ids") or []
             metrics = None if qid.endswith("_abs") else _rank_metrics(ranked_sessions, gold, k)
             qtype = str(item.get("question_type", "unknown"))
@@ -101,9 +113,9 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
                 "question": query,
                 "answer_session_ids": [str(x) for x in gold],
                 "retrieval_results": [
-                    {"session_id": memory_to_session[int(row["id"])],
+                    {"session_id": session_id,
                      "memory_id": int(row["id"]), "score": float(row["score"])}
-                    for row in ranked_memories
+                    for row, session_id in unique_ranked_memories
                 ],
                 "metrics": metrics,
             })
@@ -111,8 +123,7 @@ def run_longmemeval(dataset_path, k=5, limit=None, generate_answers=False):
             if generate_answers:
                 from .llm import generate
                 context = []
-                for row in ranked_memories:
-                    session_id = memory_to_session[int(row["id"])]
+                for row, session_id in unique_ranked_memories:
                     body = row["content"][:6000]
                     context.append(f"[Session {session_id}]\n{body}")
                 context_text = "\n\n".join(context)
