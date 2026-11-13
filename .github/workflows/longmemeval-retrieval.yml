@@ -42,7 +42,7 @@ jobs:
 
       - name: Run session retrieval benchmark
         env:
-          QUESTION_LIMIT: ${{ inputs.limit || '50' }}
+          QUESTION_LIMIT: ${{ inputs.limit || '' }}
           TOP_K: ${{ inputs.k || '5' }}
         run: |
           mkdir -p results
