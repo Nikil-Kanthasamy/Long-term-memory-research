@@ -72,3 +72,14 @@ Configure `OPENAI_API_KEY` for the official GPT-4o judge. This is separate from 
 - Retrieval scores are not end-to-end QA scores. Report them separately.
 - The full S dataset is roughly hundreds of MB. The M dataset is much larger; begin with S and a small `--limit`.
 - No benchmark data, generated hypotheses, or personal conversation data should be committed.
+
+## Run from GitHub Actions (no local dataset download required)
+
+A manual workflow is available at **Actions → LongMemEval retrieval benchmark → Run workflow** on the `research/long-term-memory-starter` branch.
+
+- The default `limit=50` runs a small retrieval pilot. Set the limit to a larger number, or leave it blank, to evaluate the full S split.
+- `k=5` is the default retrieval depth.
+- The workflow downloads the cleaned S dataset at run time, runs retrieval only (no Gemini API key required), and uploads `longmemeval_s_retrieval.json` as a 30-day artifact.
+- The dataset and result are not committed to the repository. The workflow is manual-only and does not run on every push.
+
+Use the artifact to inspect aggregate metrics and per-question retrieval results. Record the workflow run URL, commit SHA, limit, K, and artifact together when reporting results.
