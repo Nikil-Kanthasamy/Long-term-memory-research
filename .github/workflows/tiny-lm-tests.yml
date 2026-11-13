@@ -6,6 +6,8 @@ on:
     paths:
       - "src/ltm/tiny_lm.py"
       - "scripts/train_tiny_lm.py"
+      - "scripts/train_tiny_lm_sft.py"
+      - "examples/tiny_lm_sft_demo.jsonl"
       - "scripts/chat_tiny_lm.py"
       - "scripts/evaluate_tiny_lm.py"
       - "scripts/prepare_wikitext.py"
@@ -44,6 +46,8 @@ jobs:
           python scripts/train_tiny_lm.py --input /tmp/tiny-lm-smoke.txt --output-dir /tmp/tiny-lm-checkpoint --steps 10 --batch-size 2 --block-size 32 --d-model 32 --layers 1 --heads 4 --eval-interval 5 --device cpu
           python -c "from src.ltm.store import MemoryStore; s=MemoryStore('/tmp/tiny-lm-memory.sqlite3'); t=s.add_turn('ci-smoke','The project is a from-scratch memory language model.'); s.add_memory('ci-smoke','The project is a from-scratch memory language model.', category='project', source_turn_id=t)"
           python scripts/chat_tiny_lm.py --checkpoint /tmp/tiny-lm-checkpoint/best.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 4 --temperature 1.0
+          python scripts/train_tiny_lm_sft.py --input examples/tiny_lm_sft_demo.jsonl --checkpoint /tmp/tiny-lm-checkpoint/best.pt --output /tmp/tiny-lm-instruct.pt --steps 5 --batch-size 2 --device cpu
+          python scripts/chat_tiny_lm.py --checkpoint /tmp/tiny-lm-instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 4 --temperature 1.0
       - name: Prepare WikiText-2 corpus
         run: python scripts/prepare_wikitext.py --output-dir data/wikitext-2
       - name: Train model from random initialization on WikiText-2
