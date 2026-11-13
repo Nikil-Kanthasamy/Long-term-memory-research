@@ -7,6 +7,8 @@ on:
       - "src/ltm/tiny_lm.py"
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
+      - "scripts/evaluate_tiny_lm_memory_qa.py"
+      - "examples/tiny_lm_memory_qa_eval.jsonl"
       - "examples/tiny_lm_sft_demo.jsonl"
       - "scripts/chat_tiny_lm.py"
       - "scripts/evaluate_tiny_lm.py"
@@ -18,6 +20,10 @@ on:
     paths:
       - "src/ltm/tiny_lm.py"
       - "scripts/train_tiny_lm.py"
+      - "scripts/train_tiny_lm_sft.py"
+      - "scripts/evaluate_tiny_lm_memory_qa.py"
+      - "examples/tiny_lm_sft_demo.jsonl"
+      - "examples/tiny_lm_memory_qa_eval.jsonl"
       - "scripts/chat_tiny_lm.py"
       - "scripts/evaluate_tiny_lm.py"
       - "scripts/prepare_wikitext.py"
@@ -57,6 +63,8 @@ jobs:
         run: python scripts/evaluate_tiny_lm.py --checkpoint models/tiny-memory-lm/best.pt --input data/wikitext-2/test.txt --device cpu > test-metrics.json
       - name: Test memory retrieval with trained checkpoint
         run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/best.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 32 --temperature 0.8 | tee memory-chat-smoke.txt
+      - name: Compare memory and no-memory QA
+        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/best.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
@@ -66,5 +74,6 @@ jobs:
             training.log
             test-metrics.json
             memory-chat-smoke.txt
+            memory-qa-evaluation.json
             data/wikitext-2/PROVENANCE.txt
           retention-days: 30
