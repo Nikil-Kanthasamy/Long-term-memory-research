@@ -25,10 +25,10 @@ def _number(value, field, row_number):
         raise ValueError(f"Row {row_number}: {field} must be numeric") from exc
     if not math.isfinite(number):
         raise ValueError(f"Row {row_number}: {field} must be finite")
-    if field in SCALES and not 1 <= number <= 5:
-        raise ValueError(f"Row {row_number}: {field} must be between 1 and 5")
-    if field in COUNT_FIELDS and number < 0:
-        raise ValueError(f"Row {row_number}: {field} cannot be negative")
+    if field in SCALES and (not 1 <= number <= 5 or not number.is_integer()):
+        raise ValueError(f"Row {row_number}: {field} must be an integer from 1 to 5")
+    if field in COUNT_FIELDS and (number < 0 or not number.is_integer()):
+        raise ValueError(f"Row {row_number}: {field} must be a non-negative integer")
     return number
 
 
@@ -90,11 +90,13 @@ def analyze_ratings(ratings_path, manifest_path):
         raise ValueError("No completed ratings found")
 
     per_condition = {}
-    per_draft = defaultdict(lambda: defaultdict(list))
+    per_draft = defaultdict(lambda: defaultdict(dict))
     reviewer_ids = set()
     for row in rows:
         condition = row["condition"]
-        per_draft[row["case_id"]][condition][row["blind_draft_id"]].append(row)
+        per_draft[row["case_id"]][condition].setdefault(
+            row["blind_draft_id"], []
+        ).append(row)
         if row["reviewer_id"]:
             reviewer_ids.add(row["reviewer_id"])
 
@@ -139,8 +141,9 @@ def analyze_ratings(ratings_path, manifest_path):
                 left_values = condition_map.get(left, {}).get(field, [])
                 right_values = condition_map.get(right, {}).get(field, [])
                 if left_values and right_values:
-                    # Multiple draft instances per condition are averaged within case.
-                    differences.append(statistics.mean(left_values) - statistics.mean(right_values))
+                    differences.append(
+                        statistics.mean(left_values) - statistics.mean(right_values)
+                    )
             metric_results[field] = {
                 "n_paired_cases": len(differences),
                 "mean_difference": statistics.mean(differences) if differences else None,
