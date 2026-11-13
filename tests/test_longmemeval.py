@@ -15,6 +15,32 @@ class LongMemEvalAdapterTests(unittest.TestCase):
         self.assertEqual(scores["recall_at_k"], 1.0)
         self.assertEqual(scores["reciprocal_rank"], 1.0)
 
+    def test_duplicate_sessions_are_deduplicated_before_top_k(self):
+        dataset = [{
+            "question_id": "duplicate-case",
+            "question_type": "single-session-user",
+            "question": "Which tools are used for model training?",
+            "question_date": "2024/01/01",
+            "haystack_session_ids": ["same", "same", "other"],
+            "haystack_dates": ["2023/12/01", "2023/12/02", "2023/12/03"],
+            "haystack_sessions": [
+                [{"role": "user", "content": "I use PyTorch tools for model training."}],
+                [{"role": "user", "content": "I also use PyTorch tools for model training."}],
+                [{"role": "user", "content": "I use JAX tools for model training."}],
+            ],
+            "answer_session_ids": ["other"],
+        }]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "duplicate-fixture.json"
+            path.write_text(json.dumps(dataset), encoding="utf-8")
+            report = run_longmemeval(path, k=2)
+
+        ranked_ids = [
+            row["session_id"] for row in report["results"][0]["retrieval_results"]
+        ]
+        self.assertEqual(len(ranked_ids), len(set(ranked_ids)))
+        self.assertEqual(len(ranked_ids), 2)
+
     def test_session_retrieval_metrics_and_abstention_count(self):
         dataset = [
             {
