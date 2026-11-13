@@ -40,29 +40,29 @@ jobs:
       - name: Download LongMemEval S cleaned dataset
         run: python scripts/download_longmemeval.py --variant s
 
-      - name: Run session retrieval benchmark
+      - name: Run lexical and BM25 retrieval benchmarks
         env:
           QUESTION_LIMIT: ${{ inputs.limit || '' }}
           TOP_K: ${{ inputs.k || '5' }}
         run: |
           mkdir -p results
+          LIMIT_ARGS=()
           if [ -n "$QUESTION_LIMIT" ]; then
-            python -m src.ltm.cli longmemeval \
-              --dataset data/longmemeval_s_cleaned.json \
-              --k "$TOP_K" \
-              --limit "$QUESTION_LIMIT" \
-              --output results/longmemeval_s_retrieval.json
-          else
-            python -m src.ltm.cli longmemeval \
-              --dataset data/longmemeval_s_cleaned.json \
-              --k "$TOP_K" \
-              --output results/longmemeval_s_retrieval.json
+            LIMIT_ARGS=(--limit "$QUESTION_LIMIT")
           fi
+          for MODE in lexical bm25; do
+            python -m src.ltm.cli longmemeval \
+              --dataset data/longmemeval_s_cleaned.json \
+              --k "$TOP_K" \
+              --retrieval-mode "$MODE" \
+              "${LIMIT_ARGS[@]}" \
+              --output "results/longmemeval_s_${MODE}.json"
+          done
 
       - name: Upload retrieval report
         uses: actions/upload-artifact@v4
         with:
-          name: longmemeval-s-retrieval-${{ github.run_id }}
-          path: results/longmemeval_s_retrieval.json
+          name: longmemeval-s-retrieval-comparison-${{ github.run_id }}
+          path: results/longmemeval_s_*.json
           if-no-files-found: error
           retention-days: 30
