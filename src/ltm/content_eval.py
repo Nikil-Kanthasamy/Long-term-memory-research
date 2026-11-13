@@ -39,6 +39,11 @@ def run_content_evaluation(store, user_id, cases, output_dir, top_k=5,
     drafts_dir = output / "drafts"
     drafts_dir.mkdir(parents=True, exist_ok=True)
     records = []
+    total_conditions = 3 if include_review else 2
+    blind_ids = [f"D{number:04d}" for number in range(1, len(cases) * total_conditions + 1)]
+    rng = random.Random(random_seed)
+    rng.shuffle(blind_ids)
+    blind_id_iter = iter(blind_ids)
     for index, case in enumerate(cases, start=1):
         common = {key: case.get(key, default) for key, default in {
             "topic": "", "content_type": "blog", "audience": "general readers",
@@ -50,7 +55,7 @@ def run_content_evaluation(store, user_id, cases, output_dir, top_k=5,
             conditions.append(("memory_plus_review", True))
         for condition, use_memory in conditions:
             result = create_content(store, user_id, use_memory=use_memory, **common)
-            blind_id = f"D{len(records) + 1:04d}"
+            blind_id = next(blind_id_iter)
             filename = f"{blind_id}.md"
             (drafts_dir / filename).write_text(
                 result["content"].rstrip() + "\n", encoding="utf-8"
@@ -78,7 +83,7 @@ def run_content_evaluation(store, user_id, cases, output_dir, top_k=5,
     # One row per draft is a starting template. Add one duplicate row per
     # additional reviewer and fill reviewer_id; do not share the manifest.
     rating_ids = [record["blind_draft_id"] for record in records]
-    random.Random(random_seed).shuffle(rating_ids)
+    rng.shuffle(rating_ids)
     with (output / "ratings_template.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
