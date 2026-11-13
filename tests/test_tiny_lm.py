@@ -24,5 +24,27 @@ class TinyLanguageModelTests(unittest.TestCase):
         self.assertEqual(tuple(generated.shape), (1, 7))
 
 
+class TinyLMSupervisedTuningTests(unittest.TestCase):
+    def test_prompt_labels_are_masked_and_answer_labels_remain(self):
+        from scripts.train_tiny_lm_sft import encode_example
+        prompt = "Q:"
+        response = "A"
+        inputs, labels = encode_example(prompt, response, 32)
+        self.assertEqual(len(inputs), len(labels))
+        self.assertEqual(labels[:len(prompt.encode()) - 1], [-100])
+        self.assertIn(ord("A"), labels)
+
+    def test_batch_padding_is_ignored(self):
+        import torch
+        from scripts.train_tiny_lm_sft import make_batch
+        rows = [
+            {"prompt": "Q:1 A:", "response": "one"},
+            {"prompt": "Q:2 A:", "response": "two longer"},
+        ]
+        x, labels = make_batch(rows, 32, "cpu")
+        self.assertEqual(tuple(x.shape), tuple(labels.shape))
+        self.assertTrue((labels == -100).any().item())
+
+
 if __name__ == "__main__":
     unittest.main()
