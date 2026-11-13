@@ -1,6 +1,11 @@
 name: LongMemEval retrieval benchmark
 
 on:
+  push:
+    branches:
+      - research/long-term-memory-starter
+    paths:
+      - .github/workflows/longmemeval-retrieval.yml
   workflow_dispatch:
     inputs:
       limit:
