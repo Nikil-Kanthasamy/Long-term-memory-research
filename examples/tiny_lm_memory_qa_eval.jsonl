@@ -1,0 +1,8 @@
+{"question":"What database stores long-term memories?","answer":"SQLite","memory":"Long-term memories are stored in a SQLite database."}
+{"question":"How was the language model initialized?","answer":"random initialization","memory":"The tiny language model starts from random initialization and uses no pretrained weights."}
+{"question":"What tokenizer does the model use?","answer":"UTF-8 byte tokenizer","memory":"The model uses a fixed UTF-8 byte tokenizer with 256 possible byte values."}
+{"question":"What is the model architecture?","answer":"decoder-only Transformer","memory":"The tiny language model is a decoder-only Transformer."}
+{"question":"What training objective does the base model use?","answer":"next-byte prediction","memory":"The base language model is trained with causal next-byte prediction."}
+{"question":"Which retrieval method does the prototype use?","answer":"lexical search","memory":"The first memory-backed chat prototype retrieves stored memories using lexical search."}
+{"question":"How many training steps were in the first WikiText pilot?","answer":"100 steps","memory":"The first WikiText-2 training pilot ran for 100 optimization steps."}
+{"question":"Does memory retrieval update model weights?","answer":"No","memory":"Memory retrieval adds relevant stored text to the prompt; it does not update the language model weights."}
