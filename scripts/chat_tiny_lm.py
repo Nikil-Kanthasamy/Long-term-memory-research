@@ -1,7 +1,13 @@
 """Run the locally trained tiny LM with external SQLite long-term memory."""
 import argparse
+import sys
+from pathlib import Path
 
 import torch
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.ltm.config import db_path
 from src.ltm.store import MemoryStore
