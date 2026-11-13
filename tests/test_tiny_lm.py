@@ -1,8 +1,14 @@
 import importlib.util
 import unittest
 
+try:
+    import torch as _torch  # noqa: F401
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 
-@unittest.skipUnless(importlib.util.find_spec("torch"), "optional PyTorch dependency is not installed")
+
+@unittest.skipUnless(TORCH_AVAILABLE, "optional PyTorch dependency is not installed")
 class TinyLanguageModelTests(unittest.TestCase):
     def test_byte_tokenizer_round_trip(self):
         from src.ltm.tiny_lm import ByteTokenizer
