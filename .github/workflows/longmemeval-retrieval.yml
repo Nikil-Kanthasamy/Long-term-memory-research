@@ -1,0 +1,63 @@
+name: LongMemEval retrieval benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Questions to evaluate (50 is a quick pilot; leave blank for full S split)"
+        required: false
+        default: "50"
+        type: string
+      k:
+        description: "Number of retrieved sessions"
+        required: true
+        default: "5"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  retrieval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research/long-term-memory-starter
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download LongMemEval S cleaned dataset
+        run: python scripts/download_longmemeval.py --variant s
+
+      - name: Run session retrieval benchmark
+        env:
+          QUESTION_LIMIT: ${{ inputs.limit }}
+          TOP_K: ${{ inputs.k }}
+        run: |
+          mkdir -p results
+          if [ -n "$QUESTION_LIMIT" ]; then
+            python -m src.ltm.cli longmemeval \
+              --dataset data/longmemeval_s_cleaned.json \
+              --k "$TOP_K" \
+              --limit "$QUESTION_LIMIT" \
+              --output results/longmemeval_s_retrieval.json
+          else
+            python -m src.ltm.cli longmemeval \
+              --dataset data/longmemeval_s_cleaned.json \
+              --k "$TOP_K" \
+              --output results/longmemeval_s_retrieval.json
+          fi
+
+      - name: Upload retrieval report
+        uses: actions/upload-artifact@v4
+        with:
+          name: longmemeval-s-retrieval-${{ github.run_id }}
+          path: results/longmemeval_s_retrieval.json
+          if-no-files-found: error
+          retention-days: 30
