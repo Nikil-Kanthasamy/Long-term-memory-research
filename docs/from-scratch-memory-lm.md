@@ -247,3 +247,14 @@ The three lexical retrieval misses in the previous run were addressed by conserv
 Despite complete evidence coverage, neither instruction-tuned model produced a correct exact-substring answer in any of the 16 cases, with or without memory. The generated outputs remain incoherent. Therefore the run demonstrates a retrieval improvement, but **no measurable improvement in generated QA from adding memory**. The BPE held-out byte-normalized cross-entropy remains about 10.9% lower than the byte baseline; its larger vocabulary and different tokenization mean per-token perplexities are not directly comparable.
 
 The full workflow ran on CPU from random initialization, without pretrained weights, hosted generation APIs, API keys, or paid compute. The 16-question synthetic evaluation is small and exact-substring scoring has limitations; the inspected generations nevertheless confirm that answer generation is currently the main bottleneck. The next research priority is to improve model capability and instruction data while keeping retrieval evidence coverage and generated-answer quality as separate metrics.
+
+## Teacher-forced memory-use diagnostic (16 November 2026)
+
+The memory QA evaluator now reports a second model-side measure in addition to free-generation exact-match accuracy: mean negative log-likelihood (NLL) of the expected answer when that answer is supplied token by token after the prompt. It scores the same held-out answer under both the no-memory and retrieved-memory prompts.
+
+- A lower NLL in the memory condition means the retrieved context makes the expected answer more probable under the model.
+- A negative `memory_minus_no_memory_mean_nll` is therefore a positive signal for conditional memory use.
+- This remains a teacher-forced likelihood diagnostic, not generated-answer accuracy, proof of reasoning, or a replacement for held-out QA.
+- The evaluator reports both measurements separately so a model cannot appear successful merely because retrieval exposed the gold answer.
+
+The metric is implemented in `scripts/evaluate_tiny_lm_memory_qa.py` and covered by a unit test. The next TinyLM CPU workflow run validates it end to end; no new model-quality claim is made until those results are available.
