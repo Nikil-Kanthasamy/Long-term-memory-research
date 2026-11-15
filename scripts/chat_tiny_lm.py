@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
 
 from src.ltm.config import db_path
 from src.ltm.store import MemoryStore
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt
 
 
 def main():
