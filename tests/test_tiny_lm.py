@@ -139,6 +139,18 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertIn(question, prompts["no_memory"])
         self.assertNotIn("SQLite stores", prompts["no_memory"])
 
+    def test_retrieval_only_evidence_baseline(self):
+        from scripts.evaluate_tiny_lm_memory_qa import retrieval_only_evidence
+        from scripts.evaluate_tiny_lm_memory_qa import normalize
+        retrieved = [
+            {"content": "Long-term memories are stored in a SQLite database."},
+            {"content": "The first prototype uses lexical memory retrieval."},
+        ]
+        evidence = retrieval_only_evidence(retrieved)
+        self.assertIn("SQLite database", evidence)
+        self.assertIn("lexical memory retrieval", evidence)
+        self.assertIn("sqlite database", normalize(evidence))
+
     def test_retrieval_evidence_hit_is_separate_from_generation(self):
         from scripts.evaluate_tiny_lm_memory_qa import retrieval_contains_expected
         retrieved = [{"content": "Long-term memories are stored in a SQLite database."}]
