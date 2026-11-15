@@ -37,7 +37,7 @@ class ByteTokenizer:
         )
 
 
-def build_memory_prompt(question, memories, block_size, include_memory=True, reserve_new_tokens=32):
+def build_memory_prompt(question, memories, block_size, include_memory=True, reserve_new_tokens=32, tokenizer=None):
     """Fit memory and question into the byte context without dropping the memory prefix.
 
     The question is prioritized; remaining context is allocated to the leading
@@ -145,3 +145,4 @@ class TinyLanguageModel(nn.Module):
         model = cls(config)
         model.load_state_dict(checkpoint["state_dict"])
         return model.to(map_location)
+\n\ndef tokenizer_from_checkpoint(checkpoint):\n    """Restore the tokenizer recorded with a model checkpoint."""\n    metadata = checkpoint.get("tokenizer", "utf8-byte-v1")\n    if isinstance(metadata, dict) and metadata.get("type") == "byte-bpe-v1":\n        from src.ltm.bpe_tokenizer import ByteBPETokenizer\n        return ByteBPETokenizer.from_dict(metadata)\n    return ByteTokenizer()\n
