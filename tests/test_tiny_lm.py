@@ -70,6 +70,16 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertFalse(retrieval_contains_expected(retrieved, "PostgreSQL"))
         self.assertFalse(retrieval_contains_expected(retrieved, ""))
 
+    def test_expanded_instruction_and_heldout_sets_are_distinct(self):
+        from scripts.train_tiny_lm_sft import load_examples
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+        training = load_examples("examples/tiny_lm_sft_demo.jsonl")
+        heldout = load_cases("examples/tiny_lm_memory_qa_eval.jsonl")
+        self.assertGreaterEqual(len(training), 40)
+        self.assertGreaterEqual(len({row["prompt"] for row in training}), 40)
+        self.assertGreaterEqual(len(heldout), 12)
+        self.assertEqual(len({row["id"] for row in heldout}), len(heldout))
+
 
 if __name__ == "__main__":
     unittest.main()
