@@ -73,8 +73,19 @@ python scripts/train_tiny_lm_sft.py \\
   --input examples/tiny_lm_sft_demo.jsonl \\
   --checkpoint models/tiny-memory-lm/best.pt \\
   --output models/tiny-memory-lm-instruct.pt \\
-  --steps 300
+  --steps 100
 ```
+
+Run the synthetic memory-use comparison against the same checkpoint:
+
+```bash
+python scripts/evaluate_tiny_lm_memory_qa.py \\
+  --checkpoint models/tiny-memory-lm-instruct.pt \\
+  --cases examples/tiny_lm_memory_qa_eval.jsonl \\
+  --output results/tiny-lm-memory-qa.json
+```
+
+This reports literal normalized answer-substring accuracy for both `no_memory` and `memory` conditions, along with individual outputs and retrieved-memory counts. The included six-case set is a pipeline smoke test only; it is too small to support claims about memory reasoning. The CI workflow trains an instruction-tuned checkpoint from the WikiText-2 pilot checkpoint and runs this paired evaluation.
 
 For real experiments, replace the demo with a substantially larger, diverse, reviewed, and appropriately licensed instruction dataset. Keep a held-out prompt/response set and measure exact-answer accuracy, abstention, and memory-vs-no-memory performance. Never treat the demo training loss as evidence of general assistant capability.
 
@@ -96,7 +107,7 @@ The `--remember` option explicitly stores the question text as a conversation me
 
 1. A next-byte language model is not automatically a helpful chat assistant. It needs high-quality conversational/instruction training examples and careful evaluation.
 2. The memory mechanism is retrieval-augmented context, not weight modification or online learning. This separation makes memory editable, user-scoped, inspectable, and deletable.
-3. The first prototype uses lexical retrieval. BM25 integration and dense retrieval can be added after validating the base model. The GitHub Actions tiny-LM workflow also runs a short CPU training pilot on WikiText-2, evaluates its held-out test split, smoke-tests memory-backed inference, and uploads a 30-day artifact.
+3. The first prototype uses lexical retrieval. BM25 integration and dense retrieval can be added after validating the base model. The GitHub Actions tiny-LM workflow runs a short CPU training pilot on WikiText-2, applies a small supervised instruction-tuning stage, evaluates held-out language modeling, compares synthetic memory QA with and without retrieved context, and uploads a 30-day artifact.
 4. No corpus is bundled. Dataset selection, licensing, filtering, deduplication, language coverage, and held-out splits must be handled before serious training.
 5. CPU training may be slow. A GPU is recommended for larger corpora or longer runs.
 6. A tiny model may memorize its training data. Do not train on sensitive user conversations without explicit informed consent, data minimization, and a deletion policy.
