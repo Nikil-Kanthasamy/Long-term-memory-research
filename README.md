@@ -177,7 +177,7 @@ The default three-condition run makes 24 draft-generation requests plus 8 editor
 
 ## Phase 6: from-scratch neural language model with long-term memory
 
-An optional research path now defines a small decoder-only Transformer trained from random initialization. It uses a fixed 256-token UTF-8 byte tokenizer, local next-token training, and the existing SQLite memory store for retrieval-augmented prompting. It does not download pretrained weights or call a hosted generation API.
+An optional research path now defines a small decoder-only Transformer trained from random initialization. It supports both a fixed 256-token UTF-8 byte tokenizer and a learned byte-level BPE tokenizer trained only on the WikiText-2 training split. It uses local next-token training and the existing SQLite memory store for retrieval-augmented prompting. It does not download pretrained weights or call a hosted generation API. The latest paired CPU run found about 10.9% lower held-out byte-normalized cross-entropy with BPE, but both tokenizers scored 0/16 generated memory QA answers; see the [full results and limitations](docs/from-scratch-memory-lm.md#corrected-full-bytebpe-rerun-16-november-2026).
 
 Install the optional PyTorch dependency and train on a UTF-8 corpus you have permission to use:
 
