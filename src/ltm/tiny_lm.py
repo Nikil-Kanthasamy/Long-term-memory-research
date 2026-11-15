@@ -37,6 +37,25 @@ class ByteTokenizer:
         )
 
 
+def build_memory_prompt(question, memories, block_size, include_memory=True):
+    """Fit memory and question into the byte context without dropping the memory prefix.
+
+    The question is prioritized; remaining context is allocated to the leading
+    bytes of retrieved memory. This prevents a long prompt header from silently
+    evicting all evidence when the caller truncates to the model context window.
+    """
+    tokenizer = ByteTokenizer()
+    question_ids = tokenizer.encode(f"Q:{question}\\nA:")
+    if len(question_ids) >= block_size:
+        question_ids = question_ids[-block_size:]
+    available = block_size - len(question_ids)
+    memory_ids = []
+    if include_memory and memories and available > 0:
+        memory_text = "M:" + "\\n".join(str(item) for item in memories) + "\\n"
+        memory_ids = tokenizer.encode(memory_text)[:available]
+    return tokenizer.decode(memory_ids + question_ids)
+
+
 class TinyLanguageModel(nn.Module):
     """Compact GPT-style causal Transformer; all weights start randomly."""
 
