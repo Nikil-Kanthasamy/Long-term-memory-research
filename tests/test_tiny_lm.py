@@ -151,6 +151,24 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertIn("lexical memory retrieval", evidence)
         self.assertIn("sqlite database", normalize(evidence))
 
+    def test_teacher_forced_gold_answer_score_is_finite_and_token_counted(self):
+        import torch
+        from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig, ByteTokenizer
+        from scripts.evaluate_tiny_lm_memory_qa import score_expected_response
+
+        torch.manual_seed(7)
+        model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=32, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0,
+        ))
+        result = score_expected_response(
+            model, ByteTokenizer(), "M:SQLite\nQ:Where?\nA:",
+            "SQLite", "cpu",
+        )
+        self.assertTrue(torch.isfinite(torch.tensor(result["mean_nll"])).item())
+        self.assertGreater(result["perplexity"], 0)
+        self.assertEqual(result["token_count"], len("SQLite\n".encode("utf-8")))
+
     def test_retrieval_evidence_hit_is_separate_from_generation(self):
         from scripts.evaluate_tiny_lm_memory_qa import retrieval_contains_expected
         retrieved = [{"content": "Long-term memories are stored in a SQLite database."}]
