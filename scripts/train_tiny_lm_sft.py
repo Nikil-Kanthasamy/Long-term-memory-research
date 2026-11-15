@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint
 
 
 def load_examples(path):
@@ -35,7 +35,7 @@ def load_examples(path):
     return rows
 
 
-def encode_example(prompt, response, block_size):
+def encode_example(prompt, response, block_size, tokenizer=None):
     """Return input IDs and labels; preserve memory and question when possible."""
     import re
     tokenizer = ByteTokenizer()
@@ -102,7 +102,7 @@ def main():
     model.train()
     for step in range(1, args.steps + 1):
         batch = random.choices(rows, k=min(args.batch_size, len(rows)))
-        x, labels = make_batch(batch, model.config.block_size, device)
+        x, labels = make_batch(batch, model.config.block_size, device, tokenizer)
         logits, _ = model(x)
         loss = F.cross_entropy(
             logits.reshape(-1, model.config.vocab_size),
