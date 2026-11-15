@@ -63,6 +63,13 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             path.write_text(json.dumps({"question": "Where?", "memories": ["SQLite"], "expected_answer": "SQLite"}) + "\n", encoding="utf-8")
             self.assertEqual(len(load_cases(path)), 1)
 
+    def test_retrieval_evidence_hit_is_separate_from_generation(self):
+        from scripts.evaluate_tiny_lm_memory_qa import retrieval_contains_expected
+        retrieved = [{"content": "Long-term memories are stored in a SQLite database."}]
+        self.assertTrue(retrieval_contains_expected(retrieved, "SQLite database"))
+        self.assertFalse(retrieval_contains_expected(retrieved, "PostgreSQL"))
+        self.assertFalse(retrieval_contains_expected(retrieved, ""))
+
 
 if __name__ == "__main__":
     unittest.main()
