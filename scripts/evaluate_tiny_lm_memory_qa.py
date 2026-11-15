@@ -191,10 +191,11 @@ def main():
         })
 
     summary = {}
-    conditions = ("no_memory", "memory", "irrelevant_memory")
+    conditions = ("no_memory", "memory") + (("irrelevant_memory",) if any("irrelevant_memory" in row for row in results) else ())
     for condition in conditions:
         hits = sum(row[condition]["matched"] for row in results if condition in row)
-        summary[condition] = {"correct": hits, "total": len(results), "exact_contains_accuracy": hits / len(results)}
+        total = sum(condition in row for row in results)
+        summary[condition] = {"correct": hits, "total": total, "exact_contains_accuracy": hits / total if total else 0.0}
     retrieval_hits = sum(row["retrieval_hit"] for row in results)
     evidence_hits = sum(row["retrieval_only_evidence"]["matched"] for row in results)
     gold_answer_scores = {}
