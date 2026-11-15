@@ -60,7 +60,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(normalize("SQLite Database!"), "sqlite database")
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "cases.jsonl"
-            path.write_text(json.dumps({"question": "Where?", "memories": ["SQLite"], "expected_answer": "SQLite"}) + "\\n", encoding="utf-8")
+            path.write_text(json.dumps({"question": "Where?", "memories": ["SQLite"], "expected_answer": "SQLite"}) + "\n", encoding="utf-8")
             self.assertEqual(len(load_cases(path)), 1)
 
 
