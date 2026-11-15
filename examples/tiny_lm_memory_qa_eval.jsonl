@@ -1,0 +1,6 @@
+{"id":"architecture","question":"What architecture does the model use?","memories":["The prototype uses a decoder-only Transformer architecture."],"expected_answer":"decoder-only Transformer"}
+{"id":"tokenizer","question":"What tokenizer does it use?","memories":["The model uses a fixed UTF-8 byte tokenizer with 256 token IDs."],"expected_answer":"UTF-8 byte tokenizer"}
+{"id":"database","question":"Where are long-term memories stored?","memories":["Long-term memories are stored in a SQLite database."],"expected_answer":"SQLite database"}
+{"id":"objective","question":"What is the initial training objective?","memories":["The model is trained with causal next-byte prediction."],"expected_answer":"causal next-byte prediction"}
+{"id":"init","question":"How were the model weights initialized?","memories":["All model weights were initialized randomly; no pretrained weights were loaded."],"expected_answer":"initialized randomly"}
+{"id":"retrieval","question":"How does the first prototype retrieve memories?","memories":["The first prototype uses lexical memory retrieval."],"expected_answer":"lexical memory retrieval"}
