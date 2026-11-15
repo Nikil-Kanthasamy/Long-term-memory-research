@@ -10,6 +10,24 @@ except ImportError:
 
 @unittest.skipUnless(TORCH_AVAILABLE, "optional PyTorch dependency is not installed")
 class TinyLanguageModelTests(unittest.TestCase):
+    def test_byte_bpe_tokenizer_round_trip_and_compression(self):
+        from src.ltm.bpe_tokenizer import ByteBPETokenizer
+        sample = "memory memory memory stores persistent facts. café 🧠"
+        tokenizer = ByteBPETokenizer.train(sample * 20, vocab_size=300)
+        encoded = tokenizer.encode(sample)
+        self.assertEqual(tokenizer.decode(encoded), sample)
+        self.assertLess(len(encoded), len(sample.encode("utf-8")))
+        restored = ByteBPETokenizer.from_dict(tokenizer.to_dict())
+        self.assertEqual(restored.encode(sample), encoded)
+        self.assertEqual(restored.vocab_size, tokenizer.vocab_size)
+
+    def test_bpe_tokenizer_training_is_deterministic(self):
+        from src.ltm.bpe_tokenizer import ByteBPETokenizer
+        corpus = "the memory system stores facts\n" * 30
+        first = ByteBPETokenizer.train(corpus, vocab_size=280)
+        second = ByteBPETokenizer.train(corpus, vocab_size=280)
+        self.assertEqual(first.to_dict(), second.to_dict())
+
     def test_byte_tokenizer_round_trip(self):
         from src.ltm.tiny_lm import ByteTokenizer
         sample = "Memory works: café 🧠"
