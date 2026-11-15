@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import TinyLanguageModel
+from src.ltm.tiny_lm import TinyLanguageModel, tokenizer_from_checkpoint
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
             y = tokens[start + 1:start + block + 1].unsqueeze(0).to(device)
             logits, _ = model(x)
             count = y.numel()
-            loss = F.cross_entropy(logits.reshape(-1, 256), y.reshape(-1), reduction="sum")
+            loss = F.cross_entropy(logits.reshape(-1, model.config.vocab_size), y.reshape(-1), reduction="sum")
             weighted_loss += float(loss)
             token_count += count
     mean_loss = weighted_loss / token_count
