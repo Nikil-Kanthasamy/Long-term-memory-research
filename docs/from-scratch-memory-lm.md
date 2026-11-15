@@ -227,3 +227,23 @@ BPE reduces tokens per input byte by about 37.3% and improves held-out cross-ent
 The corrected evaluator separately reports the evidence-only diagnostic: retrieved text contains the literal expected answer in 13 of 16 cases for each tokenizer. The three misses are the two SQLite-database paraphrases and one next-byte-prediction paraphrase. This is evidence exposure, not a generated answer or semantic QA score. In both models, generated answer substring accuracy remains 0/16 with memory and 0/16 without memory. Sample generations remain incoherent. Thus retrieval can surface evidence for most of this tiny test set, but neither model can reliably turn it into an answer; adding memory does not currently improve generation. The earlier 10.9% language-modeling gain from BPE is real within this setup, but it is not evidence of a useful memory assistant.
 
 The model weights were randomly initialized, training and evaluation ran on CPU, and no hosted generation API or paid compute was used. The QA set is synthetic and small, and exact substring scoring can reject semantically correct paraphrases; however, the inspected outputs are plainly not coherent answers, so the zero score reflects a genuine generation failure here. Keep retrieval and generation metrics separate in subsequent experiments.
+
+
+## Latest retrieval-paraphrase rerun (16 November 2026)
+
+Full CPU workflow: [run 43754510867](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43754510867), commit `60ac4b715d7823ddee878ccb5d168ab0877b81ac`. The workflow passed all tests, byte and BPE pretraining, held-out WikiText-2 evaluation, both instruction-tuning stages, both memory-QA comparisons, and artifact upload. Artifact: `tiny-memory-lm-wikitext2-pilot-43754510867` (ID `14177962889`; available until 15 December 2026).
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| Vocabulary | 256 | 512 |
+| Held-out cross-entropy (nats/byte) | 2.4382 | 2.1735 |
+| Held-out byte-normalized perplexity | 11.4529 | 8.791 (approx.) |
+| Generated QA without memory | 0/16 | 0/16 |
+| Generated QA with memory | 0/16 | 0/16 |
+| Retrieved evidence contains literal gold answer | 16/16 (100%) | 16/16 (100%) |
+
+The three lexical retrieval misses in the previous run were addressed by conservative morphology and transparent lexical aliases. In this test set, the expected answer text was present in retrieved evidence for all 16 questions for both tokenizers, up from 13/16. This is a retrieval evidence-exposure result, not a semantic retrieval benchmark or a generated answer score.
+
+Despite complete evidence coverage, neither instruction-tuned model produced a correct exact-substring answer in any of the 16 cases, with or without memory. The generated outputs remain incoherent. Therefore the run demonstrates a retrieval improvement, but **no measurable improvement in generated QA from adding memory**. The BPE held-out byte-normalized cross-entropy remains about 10.9% lower than the byte baseline; its larger vocabulary and different tokenization mean per-token perplexities are not directly comparable.
+
+The full workflow ran on CPU from random initialization, without pretrained weights, hosted generation APIs, API keys, or paid compute. The 16-question synthetic evaluation is small and exact-substring scoring has limitations; the inspected generations nevertheless confirm that answer generation is currently the main bottleneck. The next research priority is to improve model capability and instruction data while keeping retrieval evidence coverage and generated-answer quality as separate metrics.
