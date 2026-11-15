@@ -160,3 +160,17 @@ The 48-example / 16-question run (workflow [43749808243](https://github.com/Niki
 Inspection found a concrete inference-path issue: the previous prompt put long explanatory headers and memory before the question, then truncated from the left to fit a 128-byte context. This could remove the memory evidence. The inference path now uses a compact M:/Q: prompt builder, prioritizes the question, allocates remaining bytes to retrieved evidence, and reserves up to 32 context positions for answer generation so evidence does not immediately slide out of the context. Both chat and QA evaluation use the same builder. Unit tests assert that evidence and question fit together and that generation space is reserved.
 
 This is a prompt/context correctness fix, not evidence of improved model capability. The next completed CPU run must establish whether memory-conditioned answers improve; if not, the next bottleneck is the tiny byte-level model and its SFT data/optimization, not merely prompt truncation.
+
+## Aligned prompt/SFT rerun (16 November 2026)
+
+Workflow: [run 43751361173](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43751361173). The evaluator now builds both memory and no-memory prompts with the same compact context-budgeted helper used by chat. The 48 SFT examples were rewritten to the canonical `M:... / Q:... / A:` format, and the SFT encoder now preserves the memory and question while reserving room for the target answer. Unit tests verify evidence/question preservation in training and shared prompt construction in evaluation.
+
+| Measurement | Result |
+|---|---:|
+| SFT response-only loss | 3.4277 to 0.2882 |
+| Held-out synthetic QA without memory | 0/16 exact answer matches |
+| Held-out synthetic QA with memory | 0/16 exact answer matches |
+| Gold answer present in retrieved evidence | 13/16 (81.25%) |
+| WikiText-2 held-out test perplexity | 11.4529 per byte |
+
+The rerun passed end-to-end, but generated answers remained incoherent and exact-match accuracy did not improve. The SFT loss decreased, but that is not evidence of generalization. This establishes that correcting prompt alignment alone is insufficient for this byte-level 445,952-parameter model. The next useful experiment should change the modeling/data setup rather than simply add more optimization steps: a subword tokenizer and a more representative instruction dataset would address major limitations, while preserving a strict held-out set and no-memory/memory comparison. Retrieval also remains imperfect: three of sixteen questions did not retrieve evidence containing the literal expected answer. No claim of useful memory-conditioned generation is supported by this run.
