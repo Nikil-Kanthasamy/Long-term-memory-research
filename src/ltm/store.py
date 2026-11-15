@@ -165,7 +165,32 @@ class MemoryStore:
         return sorted(results, key=lambda x: x["score"], reverse=True)[:limit]
 
 def _terms(text):
-    return [t for t in re.findall(r"[a-z0-9_]+", text.lower()) if len(t) > 1]
+    """Tokenize with conservative morphology and a few transparent paraphrase aliases.
+
+    This remains lexical retrieval (not embeddings): aliases only normalize common
+    surface forms such as 'data store'/'database' and 'forecast'/'prediction'.
+    """
+    raw = re.findall(r"[a-z0-9_]+", text.lower())
+    terms = []
+    for token in raw:
+        if len(token) <= 1:
+            continue
+        if token in {"persists", "persistent", "persistence"}:
+            token = "database"
+        elif token in {"forecast", "forecasts", "forecasting", "prediction", "predictions"}:
+            token = "predict"
+        elif token.endswith("ies") and len(token) > 4:
+            token = token[:-3] + "y"
+        elif token.endswith("ing") and len(token) > 5:
+            token = token[:-3]
+        elif token.endswith("ed") and len(token) > 4:
+            token = token[:-2]
+        elif token.endswith("s") and len(token) > 3 and not token.endswith("ss"):
+            token = token[:-1]
+        terms.append(token)
+    if {"data", "store"}.issubset(terms):
+        terms.append("database")
+    return terms
 
 def cosine(a, b):
     if len(a) != len(b) or not a:
