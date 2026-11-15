@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.ltm.store import MemoryStore
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt
+from src.ltm.tiny_lm import TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint
 
 
 def normalize(text):
@@ -49,15 +49,15 @@ def load_cases(path):
     return cases
 
 
-def build_condition_prompts(question, retrieved, block_size):
+def build_condition_prompts(question, retrieved, block_size, tokenizer=None):
     """Build paired prompts through the same context-budgeted path as chat."""
     memories = [item.get("content", "") for item in retrieved if item.get("content")]
     return {
         "no_memory": build_memory_prompt(
-            question, [], block_size, include_memory=False
+            question, [], block_size, include_memory=False, tokenizer=tokenizer
         ),
         "memory": build_memory_prompt(
-            question, memories, block_size, include_memory=True
+            question, memories, block_size, include_memory=True, tokenizer=tokenizer
         ),
     }
 
@@ -91,7 +91,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model = TinyLanguageModel.from_checkpoint(checkpoint, map_location=device)
-    tokenizer = ByteTokenizer()
+    tokenizer = tokenizer_from_checkpoint(checkpoint)
     temporary = tempfile.TemporaryDirectory() if not args.database else None
     database = args.database or str(Path(temporary.name) / "memory.sqlite3")
     store = MemoryStore(database)
