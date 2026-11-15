@@ -4,6 +4,7 @@ on:
   push:
     branches: ["research/long-term-memory-starter"]
     paths:
+      - "src/ltm/store.py"
       - "src/ltm/tiny_lm.py"
       - "src/ltm/bpe_tokenizer.py"
       - "scripts/train_tiny_lm.py"
@@ -19,6 +20,7 @@ on:
       - ".github/workflows/tiny-lm-tests.yml"
   pull_request:
     paths:
+      - "src/ltm/store.py"
       - "src/ltm/tiny_lm.py"
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
