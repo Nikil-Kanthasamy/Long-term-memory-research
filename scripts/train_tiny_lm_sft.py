@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt
 
 
 def load_examples(path):
@@ -36,11 +36,19 @@ def load_examples(path):
 
 
 def encode_example(prompt, response, block_size):
-    """Return input IDs and labels; labels on prompt positions are ignored."""
+    """Return input IDs and labels; preserve memory and question when possible."""
+    import re
     tokenizer = ByteTokenizer()
+    response_ids = tokenizer.encode(response.rstrip() + "\\n")
+    # Match the canonical M/Q/A examples and allocate answer space before
+    # constructing the prompt, mirroring the inference-time context budget.
+    match = re.fullmatch(r"M:(.*?)\\nQ:(.*?)\\nA:", prompt, flags=re.DOTALL)
+    if match and len(response_ids) < block_size:
+        prompt = build_memory_prompt(
+            match.group(2), [match.group(1)], block_size,
+            include_memory=True, reserve_new_tokens=len(response_ids)
+        )
     prompt_ids = tokenizer.encode(prompt)
-    response_ids = tokenizer.encode(response.rstrip() + "\n")
-    # Keep the answer intact when possible; trim the oldest prompt bytes first.
     if len(response_ids) >= block_size:
         response_ids = response_ids[-(block_size - 1):]
         prompt_ids = []
