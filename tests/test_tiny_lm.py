@@ -52,6 +52,17 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(tuple(x.shape), tuple(labels.shape))
         self.assertTrue((labels == -100).any().item())
 
+    def test_memory_qa_evaluator_reports_both_conditions(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases, normalize
+        self.assertEqual(normalize("SQLite Database!"), "sqlite database")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cases.jsonl"
+            path.write_text(json.dumps({"question": "Where?", "memories": ["SQLite"], "expected_answer": "SQLite"}) + "\\n", encoding="utf-8")
+            self.assertEqual(len(load_cases(path)), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
