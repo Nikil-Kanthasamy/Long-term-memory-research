@@ -124,6 +124,10 @@ def main():
             "expected_answer": case["expected_answer"],
             "retrieved_memory_count": len(retrieved),
             "retrieval_hit": retrieval_contains_expected(retrieved, case["expected_answer"]),
+            "retrieval_only_evidence": {
+                "evidence": retrieval_only_evidence(retrieved),
+                "matched": retrieval_contains_expected(retrieved, case["expected_answer"]),
+            },
             **condition_results,
         })
 
@@ -132,6 +136,7 @@ def main():
         hits = sum(row[condition]["matched"] for row in results)
         summary[condition] = {"correct": hits, "total": len(results), "exact_contains_accuracy": hits / len(results)}
     retrieval_hits = sum(row["retrieval_hit"] for row in results)
+    evidence_hits = sum(row["retrieval_only_evidence"]["matched"] for row in results)
     report = {
         "evaluation": "synthetic_memory_qa_with_retrieval_evidence",
         "checkpoint_stage": checkpoint.get("stage", "base_language_model"),
@@ -143,12 +148,18 @@ def main():
             "total": len(results),
             "hit_rate": retrieval_hits / len(results),
         },
+        "retrieval_only_evidence": {
+            "correct": evidence_hits,
+            "total": len(results),
+            "evidence_contains_gold_accuracy": evidence_hits / len(results),
+        },
         "results": results,
         "limitations": [
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
             "Generation uses literal normalized answer-substring scoring; paraphrases may be marked wrong.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
-            "A model that generates gibberish may score zero even when retrieval succeeds.",\n            "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
+            "A model that generates gibberish may score zero even when retrieval succeeds.",
+            "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
         ],
     }
     output = Path(args.output)
