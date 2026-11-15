@@ -139,6 +139,19 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertIn(question, prompts["no_memory"])
         self.assertNotIn("SQLite stores", prompts["no_memory"])
 
+    def test_evaluator_builds_irrelevant_memory_control(self):
+        from scripts.evaluate_tiny_lm_memory_qa import build_condition_prompts
+        question = "Which database stores the memories?"
+        relevant = [{"content": "Long-term memories are stored in SQLite."}]
+        distractor = ["The model uses a decoder-only Transformer."]
+        prompts = build_condition_prompts(
+            question, relevant, 128, distractor_memories=distractor
+        )
+        self.assertIn("SQLite", prompts["memory"])
+        self.assertNotIn("SQLite", prompts["irrelevant_memory"])
+        self.assertIn("decoder-only Transformer", prompts["irrelevant_memory"])
+        self.assertIn(question, prompts["irrelevant_memory"])
+
     def test_retrieval_only_evidence_baseline(self):
         from scripts.evaluate_tiny_lm_memory_qa import retrieval_only_evidence
         from scripts.evaluate_tiny_lm_memory_qa import normalize
