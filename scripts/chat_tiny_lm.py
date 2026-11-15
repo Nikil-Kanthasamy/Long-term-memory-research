@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
 
 from src.ltm.config import db_path
 from src.ltm.store import MemoryStore
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt
+from src.ltm.tiny_lm import TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint
 
 
 def main():
@@ -32,16 +32,12 @@ def main():
     model = TinyLanguageModel.from_checkpoint(checkpoint, map_location=device)
     store = MemoryStore(args.database)
     memories = store.search(args.user, args.question, limit=args.top_k, mode="lexical")
-    memory_text = "\n".join(f"- {item['content']}" for item in memories)
-    prompt = (
-        "Long-term memory (use only when relevant):\n"
-        f"{memory_text or '(no matching memories)'}\n\n"
-        f"User: {args.question}\nAssistant:"
+    tokenizer = tokenizer_from_checkpoint(checkpoint)
+    prompt = build_memory_prompt(
+        args.question, [item["content"] for item in memories],
+        model.config.block_size, include_memory=True, tokenizer=tokenizer,
     )
-    tokenizer = ByteTokenizer()
     token_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
-    if token_ids.size(1) > model.config.block_size:
-        token_ids = token_ids[:, -model.config.block_size:]
     generated = model.generate(
         token_ids, max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
