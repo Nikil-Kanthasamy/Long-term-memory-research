@@ -15,6 +15,24 @@ class TinyLanguageModelTests(unittest.TestCase):
         sample = "Memory works: café 🧠"
         self.assertEqual(ByteTokenizer.decode(ByteTokenizer.encode(sample)), sample)
 
+
+    def test_memory_prompt_keeps_evidence_and_question_within_context(self):
+        from src.ltm.tiny_lm import ByteTokenizer, build_memory_prompt
+        memory = "SQLite stores long-term memories."
+        question = "Where are persistent memories saved?"
+        prompt = build_memory_prompt(question, [memory], 128, include_memory=True)
+        self.assertLessEqual(len(ByteTokenizer.encode(prompt)), 128)
+        self.assertIn(memory, prompt)
+        self.assertIn(question, prompt)
+
+    def test_memory_prompt_without_memory_is_compact(self):
+        from src.ltm.tiny_lm import ByteTokenizer, build_memory_prompt
+        question = "What is the training objective?"
+        prompt = build_memory_prompt(question, [], 128, include_memory=False)
+        self.assertLessEqual(len(ByteTokenizer.encode(prompt)), 128)
+        self.assertIn(question, prompt)
+        self.assertNotIn("M:", prompt)
+
     def test_transformer_forward_loss_and_generation(self):
         import torch
         from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
