@@ -58,7 +58,7 @@ def main():
         "tokenizer": checkpoint.get("tokenizer", "utf8-byte-v1") if isinstance(checkpoint.get("tokenizer"), str) else checkpoint["tokenizer"].get("type"),
         "mean_cross_entropy_nats_per_token": mean_loss,
         "perplexity_per_token": perplexity,
-        "mean_cross_entropy_nats_per_byte_approx": weighted_loss / len(raw),
+        "mean_cross_entropy_nats_per_byte_approx": mean_loss * len(tokens) / len(raw),
         "device": device,
     }, indent=2))
 
