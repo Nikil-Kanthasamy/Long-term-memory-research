@@ -1,4 +1,4 @@
-"""Train a small byte-level GPT-style model from scratch on a plain-text corpus."""
+"""Train a randomly initialized GPT-style model on plain text."""
 import argparse
 import hashlib
 import json
@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+from src.ltm.bpe_tokenizer import ByteBPETokenizer
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, TinyLMConfig
 
 
 def batches(data, batch_size, block_size, device):
@@ -24,8 +25,8 @@ def batches(data, batch_size, block_size, device):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, help="UTF-8 plain-text training corpus")
-    parser.add_argument("--validation-input", help="Separate held-out validation text file")
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--validation-input")
     parser.add_argument("--output-dir", default="models/tiny-memory-lm")
     parser.add_argument("--steps", type=int, default=3000)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -37,6 +38,9 @@ def main():
     parser.add_argument("--eval-interval", type=int, default=200)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
+    parser.add_argument("--tokenizer", choices=["byte", "bpe"], default="byte")
+    parser.add_argument("--vocab-size", type=int, default=512,
+                        help="Target BPE vocabulary size; base byte IDs are always retained")
     args = parser.parse_args()
 
     if args.steps < 1 or args.batch_size < 1 or args.block_size < 8:
@@ -47,27 +51,32 @@ def main():
         parser.error("--device cuda requested but CUDA is unavailable")
     device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
 
-    corpus_path = Path(args.input)
-    raw = corpus_path.read_bytes()
-    if len(raw) < args.block_size * 4:
-        parser.error("corpus is too small; provide at least 4 * block-size bytes")
-    train_data = torch.tensor(list(raw), dtype=torch.long)
+    raw = Path(args.input).read_bytes()
     if args.validation_input:
         validation_raw = Path(args.validation_input).read_bytes()
-        val_data = torch.tensor(list(validation_raw), dtype=torch.long)
     else:
-        split = int(len(train_data) * 0.9)
-        val_data = train_data[split:]
-        train_data = train_data[:split]
-        validation_raw = bytes(val_data.tolist())
-    if len(val_data) <= args.block_size or len(train_data) <= args.block_size:
-        parser.error("training and validation files must each contain more than block-size bytes")
+        split = int(len(raw) * 0.9)
+        validation_raw, raw = raw[split:], raw[:split]
+    if len(raw) < args.block_size * 4 or len(validation_raw) <= args.block_size:
+        parser.error("training and validation corpora must each exceed block-size requirements")
+
+    if args.tokenizer == "bpe":
+        tokenizer = ByteBPETokenizer.train(raw.decode("utf-8", errors="replace"),
+                                           vocab_size=args.vocab_size)
+        tokenizer_metadata = tokenizer.to_dict()
+    else:
+        tokenizer = ByteTokenizer()
+        tokenizer_metadata = "utf8-byte-v1"
+    train_ids = tokenizer.encode(raw.decode("utf-8", errors="replace"))
+    val_ids = tokenizer.encode(validation_raw.decode("utf-8", errors="replace"))
+    if len(train_ids) <= args.block_size or len(val_ids) <= args.block_size:
+        parser.error("tokenized training and validation corpora must each exceed block-size")
+    train_data = torch.tensor(train_ids, dtype=torch.long)
+    val_data = torch.tensor(val_ids, dtype=torch.long)
     validation_sha256 = hashlib.sha256(validation_raw).hexdigest()
 
-    config = TinyLMConfig(
-        block_size=args.block_size, d_model=args.d_model,
-        n_heads=args.heads, n_layers=args.layers,
-    )
+    config = TinyLMConfig(vocab_size=tokenizer.vocab_size, block_size=args.block_size,
+                          d_model=args.d_model, n_heads=args.heads, n_layers=args.layers)
     model = TinyLanguageModel(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     output_dir = Path(args.output_dir)
@@ -87,8 +96,10 @@ def main():
 
     print(json.dumps({
         "device": device, "training_bytes": len(raw), "validation_bytes": len(validation_raw),
+        "training_tokens": len(train_ids), "validation_tokens": len(val_ids),
+        "tokens_per_byte": len(train_ids) / len(raw),
         "parameters": sum(p.numel() for p in model.parameters()),
-        "config": config.__dict__,
+        "config": config.__dict__, "tokenizer": tokenizer_metadata,
         "corpus_sha256": hashlib.sha256(raw).hexdigest(),
         "validation_sha256": validation_sha256,
     }, indent=2))
@@ -100,29 +111,21 @@ def main():
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
-
         if step == 1 or step % args.eval_interval == 0 or step == args.steps:
             train_loss = estimate(train_data, count=5)
             val_loss = estimate(val_data, count=10)
             print(f"step={step} train_loss={train_loss:.4f} val_loss={val_loss:.4f}")
             if val_loss < best_val:
                 best_val = val_loss
-                torch.save({
-                    **model.checkpoint(),
-                    "step": step,
-                    "best_val_loss": best_val,
-                    "corpus_sha256": hashlib.sha256(raw).hexdigest(),
-                    "validation_sha256": validation_sha256,
-                    "tokenizer": "utf8-byte-v1",
-                }, output_dir / "best.pt")
-    torch.save({
-        **model.checkpoint(),
-        "step": args.steps,
-        "best_val_loss": best_val,
-        "corpus_sha256": hashlib.sha256(raw).hexdigest(),
-        "validation_sha256": validation_sha256,
-        "tokenizer": "utf8-byte-v1",
-    }, output_dir / "final.pt")
+                torch.save({**model.checkpoint(), "step": step,
+                            "best_val_loss": best_val,
+                            "corpus_sha256": hashlib.sha256(raw).hexdigest(),
+                            "validation_sha256": validation_sha256,
+                            "tokenizer": tokenizer_metadata}, output_dir / "best.pt")
+    torch.save({**model.checkpoint(), "step": args.steps, "best_val_loss": best_val,
+                "corpus_sha256": hashlib.sha256(raw).hexdigest(),
+                "validation_sha256": validation_sha256,
+                "tokenizer": tokenizer_metadata}, output_dir / "final.pt")
     print(f"Saved checkpoints to {output_dir}")
 
 
