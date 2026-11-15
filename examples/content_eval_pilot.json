@@ -1,0 +1,112 @@
+[
+  {
+    "id": "pilot-01-accessibility-blog",
+    "topic": "Practical accessibility checks for a small student-built web app",
+    "content_type": "blog",
+    "audience": "beginner software students",
+    "tone": "clear and encouraging",
+    "length": "short",
+    "keywords": [
+      "accessibility",
+      "keyboard",
+      "contrast"
+    ],
+    "instructions": "Use the supplied project context only. Avoid claiming formal compliance or inventing audit results."
+  },
+  {
+    "id": "pilot-02-vision-report",
+    "topic": "A project update about a small image-classification experiment",
+    "content_type": "report",
+    "audience": "a university project supervisor",
+    "tone": "concise and factual",
+    "length": "short",
+    "keywords": [
+      "image classification",
+      "PyTorch",
+      "dataset"
+    ],
+    "instructions": "Clearly separate completed work from planned work. Do not invent accuracy, dataset size, or results."
+  },
+  {
+    "id": "pilot-03-newsletter",
+    "topic": "A monthly update for a student learning community",
+    "content_type": "newsletter",
+    "audience": "busy student members",
+    "tone": "friendly and concise",
+    "length": "short",
+    "keywords": [
+      "learning community",
+      "monthly update"
+    ],
+    "instructions": "Avoid emojis. Include a short opening, scannable sections, and one clear next step."
+  },
+  {
+    "id": "pilot-04-workshop-social",
+    "topic": "Promote a beginner-friendly community workshop",
+    "content_type": "social",
+    "audience": "first-time attendees",
+    "tone": "welcoming and practical",
+    "length": "short",
+    "keywords": [
+      "workshop",
+      "beginner",
+      "community"
+    ],
+    "instructions": "Do not invent a date, venue, fee, registration link, or attendance limit. Use placeholders for missing logistics."
+  },
+  {
+    "id": "pilot-05-product-description",
+    "topic": "Describe a prototype study-planning app",
+    "content_type": "product",
+    "audience": "college students",
+    "tone": "plain-language and trustworthy",
+    "length": "short",
+    "keywords": [
+      "study planner",
+      "offline",
+      "SQLite"
+    ],
+    "instructions": "Only describe supplied prototype capabilities. Do not claim app-store availability, security certification, or integrations."
+  },
+  {
+    "id": "pilot-06-project-email",
+    "topic": "Ask a project teammate for a brief status update",
+    "content_type": "email",
+    "audience": "a teammate",
+    "tone": "warm, direct, and respectful",
+    "length": "short",
+    "keywords": [
+      "project update",
+      "task status"
+    ],
+    "instructions": "Keep it concise, make the request specific, and avoid sounding demanding."
+  },
+  {
+    "id": "pilot-07-offline-first-article",
+    "topic": "Explain why an offline-first approach can help a student productivity prototype",
+    "content_type": "article",
+    "audience": "technology students",
+    "tone": "educational and balanced",
+    "length": "short",
+    "keywords": [
+      "offline-first",
+      "SQLite",
+      "synchronization"
+    ],
+    "instructions": "Explain trade-offs as well as benefits. Do not imply the prototype has cloud sync."
+  },
+  {
+    "id": "pilot-08-demo-script",
+    "topic": "A short demo script introducing a personal study assistant prototype",
+    "content_type": "script",
+    "audience": "students with limited technical background",
+    "tone": "natural and reassuring",
+    "length": "short",
+    "keywords": [
+      "study assistant",
+      "demo",
+      "memory"
+    ],
+    "instructions": "Use a simple analogy, avoid exaggerated claims, and mark any unimplemented feature as future work."
+  }
+]
