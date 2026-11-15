@@ -203,3 +203,27 @@ Full CPU workflow: [run 43752163491](https://github.com/Nikil-Kanthasamy/Long-te
 The BPE model uses about 37.3% fewer tokens per training byte and has lower held-out cross-entropy when normalized by original text bytes (about 10.9% lower than the byte baseline). This is a useful language-modeling/context-efficiency signal, although the BPE model has a larger embedding vocabulary and therefore 32,768 more parameters. The per-token perplexity values are not directly comparable across tokenizers; the byte-normalized loss is the relevant comparison here.
 
 Crucially, the better language-modeling metric did **not** translate into better memory QA: both tokenizers scored 0/16 with and without retrieved memory, and retrieval evidence coverage remained 13/16. BPE generations contain more recognizable fragments than the byte model but are still not reliable answers. The experiment therefore supports keeping BPE as the more efficient tokenizer for the next iteration, not claiming that a useful memory assistant has been built. The next bottleneck is instruction-following/generalization and the tiny training setup, alongside the three retrieval misses. The model remains randomly initialized; no pretrained weights or hosted generation APIs were used.
+
+
+## Corrected full byte/BPE rerun (16 November 2026)
+
+The corrected full CPU workflow [43753114964](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43753114964) completed successfully on commit `bb7c144058cac0804765179b42674940240881a6`. It passed the full test suite, smoke training/inference, WikiText-2 preparation, random-initialized pretraining, held-out evaluation, both instruction-tuning stages, both memory QA evaluations, and artifact upload. The 30-day artifact is `tiny-memory-lm-wikitext2-pilot-43753114964` (artifact ID `14177337063`); it contains both checkpoints, training logs, held-out metrics, and per-case QA outputs.
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| Vocabulary | 256 | 512 |
+| Parameters | 445,952 | 478,720 |
+| Pretraining steps | 1,000 | 1,000 |
+| Final training loss | 2.3898 nats/token (= nats/byte) | 3.4775 nats/token |
+| Held-out test cross-entropy | 2.4382 nats/byte | 2.1735 nats/byte (byte-normalized) |
+| Held-out byte-normalized perplexity | 11.4529 | 8.791 (approx.) |
+| SFT response-only loss, step 1 to 2,000 | 3.4277 to 0.2882 | 4.9368 to 0.2490 |
+| Held-out QA without memory | 0/16 | 0/16 |
+| Held-out QA with memory | 0/16 | 0/16 |
+| Retrieved evidence contains literal gold answer | 13/16 (81.25%) | 13/16 (81.25%) |
+
+BPE reduces tokens per input byte by about 37.3% and improves held-out cross-entropy normalized by original bytes by about 10.9%. Its vocabulary adds 32,768 parameters, and per-token perplexity should not be compared directly between tokenizers. The byte-normalized metric is the meaningful comparison.
+
+The corrected evaluator separately reports the evidence-only diagnostic: retrieved text contains the literal expected answer in 13 of 16 cases for each tokenizer. The three misses are the two SQLite-database paraphrases and one next-byte-prediction paraphrase. This is evidence exposure, not a generated answer or semantic QA score. In both models, generated answer substring accuracy remains 0/16 with memory and 0/16 without memory. Sample generations remain incoherent. Thus retrieval can surface evidence for most of this tiny test set, but neither model can reliably turn it into an answer; adding memory does not currently improve generation. The earlier 10.9% language-modeling gain from BPE is real within this setup, but it is not evidence of a useful memory assistant.
+
+The model weights were randomly initialized, training and evaluation ran on CPU, and no hosted generation API or paid compute was used. The QA set is synthetic and small, and exact substring scoring can reject semantically correct paraphrases; however, the inspected outputs are plainly not coherent answers, so the zero score reflects a genuine generation failure here. Keep retrieval and generation metrics separate in subsequent experiments.
