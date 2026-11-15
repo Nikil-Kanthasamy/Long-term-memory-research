@@ -28,6 +28,23 @@ class TinyLanguageModelTests(unittest.TestCase):
         second = ByteBPETokenizer.train(corpus, vocab_size=280)
         self.assertEqual(first.to_dict(), second.to_dict())
 
+    def test_bpe_memory_prompt_and_sft_preserve_context(self):
+        from src.ltm.bpe_tokenizer import ByteBPETokenizer
+        from src.ltm.tiny_lm import build_memory_prompt
+        from scripts.train_tiny_lm_sft import encode_example
+        memory = "SQLite stores persistent project memories."
+        question = "Where are project memories stored?"
+        tokenizer = ByteBPETokenizer.train((memory + " " + question) * 20, vocab_size=300)
+        prompt = build_memory_prompt(question, [memory], 128, tokenizer=tokenizer)
+        self.assertIn(memory, prompt)
+        self.assertIn(question, prompt)
+        inputs, labels = encode_example(
+            f"M:{memory}\nQ:{question}\nA:", "SQLite.", 128, tokenizer
+        )
+        self.assertIn(question, tokenizer.decode(inputs))
+        self.assertIn(memory, tokenizer.decode(inputs))
+        self.assertTrue(any(label >= 0 for label in labels))
+
     def test_byte_tokenizer_round_trip(self):
         from src.ltm.tiny_lm import ByteTokenizer
         sample = "Memory works: café 🧠"
