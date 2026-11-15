@@ -91,7 +91,7 @@ For real experiments, replace the demo with a substantially larger, diverse, rev
 
 ## Latest completed CPU pilot (16 November 2026)
 
-Workflow: [run 43748513044](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43748513044). It completed successfully on the research branch. The uploaded artifact contains the checkpoints, logs, held-out metrics, and generated QA outputs.
+Workflow: [run 43749385240](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43749385240). It completed successfully on the research branch. The uploaded artifact contains the checkpoints, logs, held-out metrics, and generated QA outputs.
 
 | Measurement | Result |
 |---|---:|
@@ -105,8 +105,9 @@ Workflow: [run 43748513044](https://github.com/Nikil-Kanthasamy/Long-term-memory
 | SFT response-only loss | 3.0657 to 0.0077 |
 | Synthetic QA without memory | 0/6 exact answer matches |
 | Synthetic QA with memory | 0/6 exact answer matches |
+| Gold answer present in retrieved evidence | 6/6 (100%) |
 
-The memory retriever returned one candidate in each of the six test cases, but neither the memory-assisted nor no-memory generation produced an exact expected answer. The chat smoke-test output was also incoherent. Therefore this pilot validates that training, checkpointing, retrieval insertion, and evaluation execute end-to-end; it does **not** validate a useful conversational model or a measurable memory benefit.
+The memory retriever returned one candidate in each of the six test cases, and the evidence check confirmed that the gold answer text was present in retrieved evidence in all six cases (6/6). Yet neither memory-assisted nor no-memory generation produced an exact expected answer (0/6 in each condition). This isolates the current bottleneck in this tiny controlled set: lexical retrieval found the supplied facts, while the randomly initialized language model could not turn those facts into answers. The chat smoke-test output was also incoherent. Therefore this pilot validates that training, checkpointing, retrieval insertion, and evaluation execute end-to-end; it does **not** validate a useful conversational model or a measurable memory benefit.
 
 The very low instruction-tuning loss alongside zero QA accuracy is a warning that the eight-example demonstration set is being memorized or otherwise overfit, not that the model has learned general instruction following. The next experiment should not simply increase the step count. First improve the evaluation and training setup: use a larger curated prompt/response dataset, hold out paraphrased and unseen questions, inspect prompt/target tokenization and generated samples, and compare retrieval correctness separately from generation quality. Keep the same test cases untouched until the pipeline is revised.
 
