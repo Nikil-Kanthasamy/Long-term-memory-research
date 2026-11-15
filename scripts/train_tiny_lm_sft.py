@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint, tokenizer_from_checkpoint
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint
 
 
 def load_examples(path):
