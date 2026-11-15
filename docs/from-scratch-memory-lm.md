@@ -257,4 +257,23 @@ The memory QA evaluator now reports a second model-side measure in addition to f
 - This remains a teacher-forced likelihood diagnostic, not generated-answer accuracy, proof of reasoning, or a replacement for held-out QA.
 - The evaluator reports both measurements separately so a model cannot appear successful merely because retrieval exposed the gold answer.
 
-The metric is implemented in `scripts/evaluate_tiny_lm_memory_qa.py` and covered by a unit test. The next TinyLM CPU workflow run validates it end to end; no new model-quality claim is made until those results are available.
+The metric is implemented in `scripts/evaluate_tiny_lm_memory_qa.py` and covered by a unit test. It was validated end to end in corrected CPU workflow [43755777246](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43755777246), commit `696315007d8b7af16875a7d34ee06cafde142b36`.
+
+
+### Corrected teacher-forced evaluation results
+
+The corrected run completed successfully, including both tokenizers and artifact upload (artifact ID `14178039836`, available until 15 December 2026).
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| No-memory mean gold-answer NLL | 3.8713 | 3.1531 |
+| Memory mean gold-answer NLL | 3.2912 | 2.6752 |
+| Memory minus no-memory NLL | -0.5801 | -0.4778 |
+| Gold-answer tokens scored | 330 | 212 |
+| Retrieved evidence contains gold answer | 16/16 | 16/16 |
+| Generated exact-substring QA, no memory | 0/16 | 0/16 |
+| Generated exact-substring QA, memory | 0/16 | 0/16 |
+
+For both tokenizers, the memory prompt lowered mean teacher-forced gold-answer NLL across the 16-case synthetic evaluation. This is consistent with retrieved context making the expected answer more probable to the model. It does **not** show that the model can produce the answer: free generation remained 0/16 in both conditions. Nor does the small synthetic evaluation establish statistical significance or generalization. Treat this as a preliminary signal of conditional context sensitivity, not successful long-term-memory QA.
+
+The run's unit tests, training, held-out evaluation, instruction tuning, memory comparisons, and artifact upload all completed successfully on CPU. The weights remained randomly initialized before WikiText-2 training; no pretrained checkpoint, hosted generation API, API key, or paid compute was used.
