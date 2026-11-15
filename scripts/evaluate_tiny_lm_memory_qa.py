@@ -82,6 +82,44 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
     return tokenizer.decode(ids[0, prompt_length:].tolist()).strip()
 
 
+
+def score_expected_response(model, tokenizer, prompt, response, device):
+    """Score gold response tokens by teacher-forced mean NLL after a prompt.
+
+    This is a diagnostic of conditional probability, not free-form answer
+    accuracy. The prompt is left-truncated only if needed to keep the complete
+    gold response inside the model context window.
+    """
+    prompt_ids = tokenizer.encode(prompt)
+    response_ids = tokenizer.encode(response.rstrip() + "\\n")
+    block_size = model.config.block_size
+    if len(response_ids) >= block_size:
+        response_ids = response_ids[-(block_size - 1):]
+        prompt_ids = []
+    else:
+        prompt_ids = prompt_ids[-(block_size - len(response_ids)):]
+    combined = prompt_ids + response_ids
+    if not prompt_ids or not response_ids:
+        raise ValueError("prompt and response must each contain at least one token")
+    input_ids = torch.tensor([combined[:-1]], dtype=torch.long, device=device)
+    targets = torch.tensor(combined[1:], dtype=torch.long, device=device)
+    first_response_logit = len(prompt_ids) - 1
+    with torch.no_grad():
+        model.eval()
+        logits, _ = model(input_ids)
+        response_logits = logits[:, first_response_logit:, :]
+        response_targets = targets[first_response_logit:]
+        nll = torch.nn.functional.cross_entropy(
+            response_logits.reshape(-1, model.config.vocab_size),
+            response_targets,
+            reduction="mean",
+        )
+    return {
+        "mean_nll": float(nll.item()),
+        "perplexity": float(torch.exp(nll).item()),
+        "token_count": len(response_ids),
+    }
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
@@ -113,11 +151,18 @@ def main():
         condition_results = {}
         for condition, prompt in prompts.items():
             torch.manual_seed(1000 + index)
+            expected_score = score_expected_response(
+                model, tokenizer, prompt, case["expected_answer"], device
+            )
             answer = generate_answer(model, tokenizer, prompt, args.max_new_tokens, device)
             expected = normalize(case["expected_answer"])
             observed = normalize(answer)
             matched = bool(expected) and expected in observed
-            condition_results[condition] = {"answer": answer, "matched": matched}
+            condition_results[condition] = {
+                "answer": answer,
+                "matched": matched,
+                "gold_answer_score": expected_score,
+            }
         results.append({
             "case_id": case.get("id", str(index)),
             "question": case["question"],
@@ -137,6 +182,18 @@ def main():
         summary[condition] = {"correct": hits, "total": len(results), "exact_contains_accuracy": hits / len(results)}
     retrieval_hits = sum(row["retrieval_hit"] for row in results)
     evidence_hits = sum(row["retrieval_only_evidence"]["matched"] for row in results)
+    gold_answer_scores = {}
+    for condition in ("no_memory", "memory"):
+        scores = [row[condition]["gold_answer_score"] for row in results]
+        gold_answer_scores[condition] = {
+            "mean_nll": sum(item["mean_nll"] for item in scores) / len(scores),
+            "mean_perplexity": sum(item["perplexity"] for item in scores) / len(scores),
+            "total_scored_tokens": sum(item["token_count"] for item in scores),
+        }
+    gold_answer_nll_delta_memory_minus_no_memory = (
+        gold_answer_scores["memory"]["mean_nll"]
+        - gold_answer_scores["no_memory"]["mean_nll"]
+    )
     report = {
         "evaluation": "synthetic_memory_qa_with_retrieval_evidence",
         "checkpoint_stage": checkpoint.get("stage", "base_language_model"),
@@ -153,6 +210,11 @@ def main():
             "total": len(results),
             "evidence_contains_gold_accuracy": evidence_hits / len(results),
         },
+        "gold_answer_likelihood": {
+            "by_condition": gold_answer_scores,
+            "memory_minus_no_memory_mean_nll": gold_answer_nll_delta_memory_minus_no_memory,
+            "interpretation": "Negative delta means retrieved memory lowers the model's teacher-forced gold-answer NLL; this is not generated-answer accuracy.",
+        },
         "results": results,
         "limitations": [
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
@@ -160,12 +222,13 @@ def main():
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
+            "gold_answer_likelihood is teacher-forced token likelihood, not free-form answer accuracy or proof of semantic reasoning.",
         ],
     }
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(json.dumps({"summary": summary, "retrieval_summary": report["retrieval_summary"], "output": str(output)}, indent=2))
+    print(json.dumps({"summary": summary, "retrieval_summary": report["retrieval_summary"], "gold_answer_likelihood": report["gold_answer_likelihood"], "output": str(output)}, indent=2))
     if temporary:
         temporary.cleanup()
 
