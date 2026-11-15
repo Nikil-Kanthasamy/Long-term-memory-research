@@ -69,25 +69,46 @@ The evaluator reports next-byte cross-entropy and byte-level perplexity. These a
 The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. A tiny synthetic example set is included only to test the pipeline; it is not enough to create a capable assistant.
 
 ```bash
-python scripts/train_tiny_lm_sft.py \\
-  --input examples/tiny_lm_sft_demo.jsonl \\
-  --checkpoint models/tiny-memory-lm/best.pt \\
-  --output models/tiny-memory-lm-instruct.pt \\
+python scripts/train_tiny_lm_sft.py \
+  --input examples/tiny_lm_sft_demo.jsonl \
+  --checkpoint models/tiny-memory-lm/best.pt \
+  --output models/tiny-memory-lm-instruct.pt \
   --steps 100
 ```
 
 Run the synthetic memory-use comparison against the same checkpoint:
 
 ```bash
-python scripts/evaluate_tiny_lm_memory_qa.py \\
-  --checkpoint models/tiny-memory-lm-instruct.pt \\
-  --cases examples/tiny_lm_memory_qa_eval.jsonl \\
+python scripts/evaluate_tiny_lm_memory_qa.py \
+  --checkpoint models/tiny-memory-lm-instruct.pt \
+  --cases examples/tiny_lm_memory_qa_eval.jsonl \
   --output results/tiny-lm-memory-qa.json
 ```
 
 This reports literal normalized answer-substring accuracy for both `no_memory` and `memory` conditions, along with individual outputs and retrieved-memory counts. The included six-case set is a pipeline smoke test only; it is too small to support claims about memory reasoning. The CI workflow trains an instruction-tuned checkpoint from the WikiText-2 pilot checkpoint and runs this paired evaluation.
 
 For real experiments, replace the demo with a substantially larger, diverse, reviewed, and appropriately licensed instruction dataset. Keep a held-out prompt/response set and measure exact-answer accuracy, abstention, and memory-vs-no-memory performance. Never treat the demo training loss as evidence of general assistant capability.
+
+## Latest completed CPU pilot (16 November 2026)
+
+Workflow: [run 43748513044](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43748513044). It completed successfully on the research branch. The uploaded artifact contains the checkpoints, logs, held-out metrics, and generated QA outputs.
+
+| Measurement | Result |
+|---|---:|
+| Parameters | 445,952 |
+| Configuration | 2 layers, 4 heads, width 128, context 128 bytes |
+| Pretraining steps | 1,000 |
+| Final training loss | 2.3898 nats/byte |
+| Final validation loss | 2.4075 nats/byte |
+| Held-out test perplexity | 11.4529 per byte |
+| Instruction-tuning steps | 2,000 |
+| SFT response-only loss | 3.0657 to 0.0077 |
+| Synthetic QA without memory | 0/6 exact answer matches |
+| Synthetic QA with memory | 0/6 exact answer matches |
+
+The memory retriever returned one candidate in each of the six test cases, but neither the memory-assisted nor no-memory generation produced an exact expected answer. The chat smoke-test output was also incoherent. Therefore this pilot validates that training, checkpointing, retrieval insertion, and evaluation execute end-to-end; it does **not** validate a useful conversational model or a measurable memory benefit.
+
+The very low instruction-tuning loss alongside zero QA accuracy is a warning that the eight-example demonstration set is being memorized or otherwise overfit, not that the model has learned general instruction following. The next experiment should not simply increase the step count. First improve the evaluation and training setup: use a larger curated prompt/response dataset, hold out paraphrased and unseen questions, inspect prompt/target tokenization and generated samples, and compare retrieval correctness separately from generation quality. Keep the same test cases untouched until the pipeline is revised.
 
 ## Chat with retrieved long-term memory
 
