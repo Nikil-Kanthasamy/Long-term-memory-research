@@ -67,8 +67,6 @@ jobs:
         run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 32 --temperature 0.8 | tee memory-chat-smoke.txt
       - name: Compare memory and no-memory QA
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
-      - name: Compare memory and no-memory QA
-        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/best.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
