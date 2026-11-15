@@ -84,9 +84,9 @@ def main():
         retrieved = store.search(user_id, case["question"], limit=5, mode="lexical")
         memory_context = "\n".join(f"- {item['content']}" for item in retrieved) or "(no matching memories)"
         prompts = {
-            "no_memory": f"Answer the user accurately and briefly.\nUser: {case['question']}\nAssistant:",
+            "no_memory": f"You are a concise assistant.\nUser: {case['question']}\nAssistant:",
             "memory": (
-                "Use the relevant memory below to answer. If it does not contain the answer, say you do not know.\n"
+                "Use the supplied memory to answer.\n"
                 f"Memory:\n{memory_context}\nUser: {case['question']}\nAssistant:"
             ),
         }
