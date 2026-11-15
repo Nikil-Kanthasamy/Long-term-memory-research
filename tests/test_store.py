@@ -48,6 +48,21 @@ class MemoryStoreTests(unittest.TestCase):
         self.store.add_turn("bob", "The training uses JAX")
         self.assertEqual(len(self.store.search_turns("alice", "PyTorch")), 1)
         self.assertEqual(self.store.search_turns("alice", "JAX"), [])
+    def test_paraphrase_data_store_finds_sqlite_database(self):
+        self.store.add_memory("alice", "Long-term memories are stored in a SQLite database.")
+        results = self.store.search("alice", "Which local data store persists user facts?", mode="lexical")
+        self.assertTrue(results)
+        self.assertIn("SQLite database", results[0]["content"])
+    def test_paraphrase_persistent_layer_finds_sqlite_database(self):
+        self.store.add_memory("alice", "Long-term memories are stored in a SQLite database.")
+        results = self.store.search("alice", "What technology backs the persistent memory layer?", mode="lexical")
+        self.assertTrue(results)
+        self.assertIn("SQLite database", results[0]["content"])
+    def test_paraphrase_forecast_finds_next_byte_prediction(self):
+        self.store.add_memory("alice", "The model is trained with causal next-byte prediction.")
+        results = self.store.search("alice", "What does each training position try to forecast?", mode="lexical")
+        self.assertTrue(results)
+        self.assertIn("next-byte prediction", results[0]["content"])
 
 if __name__ == "__main__":
     unittest.main()
