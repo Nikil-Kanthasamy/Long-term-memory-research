@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint
+from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, build_memory_prompt, tokenizer_from_checkpoint, tokenizer_from_checkpoint
 
 
 def load_examples(path):
@@ -38,7 +38,7 @@ def load_examples(path):
 def encode_example(prompt, response, block_size, tokenizer=None):
     """Return input IDs and labels; preserve memory and question when possible."""
     import re
-    tokenizer = ByteTokenizer()
+    tokenizer = tokenizer or ByteTokenizer()
     response_ids = tokenizer.encode(response.rstrip() + "\n")
     # Match the canonical M/Q/A examples and allocate answer space before
     # constructing the prompt, mirroring the inference-time context budget.
@@ -46,7 +46,7 @@ def encode_example(prompt, response, block_size, tokenizer=None):
     if match and len(response_ids) < block_size:
         prompt = build_memory_prompt(
             match.group(2), [match.group(1)], block_size,
-            include_memory=True, reserve_new_tokens=len(response_ids)
+            include_memory=True, reserve_new_tokens=len(response_ids), tokenizer=tokenizer
         )
     prompt_ids = tokenizer.encode(prompt)
     if len(response_ids) >= block_size:
@@ -64,8 +64,8 @@ def encode_example(prompt, response, block_size, tokenizer=None):
     return inputs, labels
 
 
-def make_batch(rows, block_size, device):
-    encoded = [encode_example(row["prompt"], row["response"], block_size) for row in rows]
+def make_batch(rows, block_size, device, tokenizer=None):
+    encoded = [encode_example(row["prompt"], row["response"], block_size, tokenizer) for row in rows]
     width = min(block_size - 1, max(len(x) for x, _ in encoded))
     inputs, labels = [], []
     for x, y in encoded:
@@ -98,6 +98,7 @@ def main():
     rows = load_examples(args.input)
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model = TinyLanguageModel.from_checkpoint(checkpoint, map_location=device)
+    tokenizer = tokenizer_from_checkpoint(checkpoint)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     model.train()
     for step in range(1, args.steps + 1):
@@ -116,6 +117,7 @@ def main():
         if step == 1 or step % max(1, args.steps // 10) == 0 or step == args.steps:
             print(f"step={step} response_only_loss={loss.item():.4f}")
     payload = model.checkpoint()
+    payload["tokenizer"] = checkpoint.get("tokenizer", "utf8-byte-v1")
     payload.update({
         "stage": "supervised_instruction_tuning",
         "base_checkpoint_step": checkpoint.get("step"),
