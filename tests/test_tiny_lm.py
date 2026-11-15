@@ -21,7 +21,7 @@ class TinyLanguageModelTests(unittest.TestCase):
         memory = "SQLite stores long-term memories."
         question = "Where are persistent memories saved?"
         prompt = build_memory_prompt(question, [memory], 128, include_memory=True)
-        self.assertLessEqual(len(ByteTokenizer.encode(prompt)), 128)
+        self.assertLessEqual(len(ByteTokenizer.encode(prompt)), 96)
         self.assertIn(memory, prompt)
         self.assertIn(question, prompt)
 
