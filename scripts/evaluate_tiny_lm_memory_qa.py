@@ -103,7 +103,7 @@ def main():
             store.add_memory(user_id, memory, category="evaluation", importance=1.0, confidence=1.0)
         retrieved = store.search(user_id, case["question"], limit=5, mode="lexical")
         prompts = build_condition_prompts(
-            case["question"], retrieved, model.config.block_size
+            case["question"], retrieved, model.config.block_size, tokenizer
         )
         condition_results = {}
         for condition, prompt in prompts.items():
