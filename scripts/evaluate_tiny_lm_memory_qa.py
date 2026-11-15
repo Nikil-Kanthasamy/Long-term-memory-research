@@ -24,6 +24,11 @@ def normalize(text):
     return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
 
 
+def retrieval_only_evidence(retrieved):
+    """Return retrieved memory text without asking the language model to rewrite it."""
+    return "\\n".join(item.get("content", "") for item in retrieved if item.get("content"))
+
+
 def retrieval_contains_expected(retrieved, expected_answer):
     """Check whether retrieved evidence contains the normalized gold answer."""
     expected = normalize(expected_answer)
@@ -143,7 +148,7 @@ def main():
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
             "Generation uses literal normalized answer-substring scoring; paraphrases may be marked wrong.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
-            "A model that generates gibberish may score zero even when retrieval succeeds.",
+            "A model that generates gibberish may score zero even when retrieval succeeds.",\n            "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
         ],
     }
     output = Path(args.output)
