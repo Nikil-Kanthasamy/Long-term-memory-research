@@ -62,9 +62,9 @@ jobs:
       - name: Evaluate held-out WikiText-2 test split
         run: python scripts/evaluate_tiny_lm.py --checkpoint models/tiny-memory-lm/best.pt --input data/wikitext-2/test.txt --device cpu > test-metrics.json
       - name: Supervised instruction-tune the WikiText checkpoint
-        run: python scripts/train_tiny_lm_sft.py --input examples/tiny_lm_sft_demo.jsonl --checkpoint models/tiny-memory-lm/best.pt --output models/tiny-memory-lm/instruct.pt --steps 100 --batch-size 4 --device cpu | tee instruction-tuning.log
+        run: python scripts/train_tiny_lm_sft.py --input examples/tiny_lm_sft_demo.jsonl --checkpoint models/tiny-memory-lm/best.pt --output models/tiny-memory-lm/instruct.pt --steps 500 --batch-size 4 --device cpu | tee instruction-tuning.log
       - name: Test memory retrieval with instruction-tuned checkpoint
-        run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 32 --temperature 0.8 | tee memory-chat-smoke.txt
+        run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 64 --temperature 0.8 | tee memory-chat-smoke.txt
       - name: Compare memory and no-memory QA
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
       - name: Upload pilot checkpoint and evaluation
