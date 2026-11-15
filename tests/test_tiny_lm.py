@@ -59,6 +59,18 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(labels[:len(prompt.encode()) - 1], [-100])
         self.assertIn(ord("A"), labels)
 
+    def test_memory_sft_example_preserves_fact_and_question(self):
+        from scripts.train_tiny_lm_sft import encode_example
+        from src.ltm.tiny_lm import ByteTokenizer
+        memory = "SQLite stores persistent memories."
+        question = "Where are memories stored?"
+        prompt = f"M:{memory}\\nQ:{question}\\nA:"
+        inputs, labels = encode_example(prompt, "SQLite.", 128)
+        decoded_prompt = ByteTokenizer.decode(inputs)
+        self.assertIn(memory, decoded_prompt)
+        self.assertIn(question, decoded_prompt)
+        self.assertIn(ord("S"), labels)
+
     def test_batch_padding_is_ignored(self):
         import torch
         from scripts.train_tiny_lm_sft import make_batch
@@ -80,6 +92,17 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             path = Path(directory) / "cases.jsonl"
             path.write_text(json.dumps({"question": "Where?", "memories": ["SQLite"], "expected_answer": "SQLite"}) + "\n", encoding="utf-8")
             self.assertEqual(len(load_cases(path)), 1)
+
+    def test_evaluator_uses_shared_memory_prompt_builder(self):
+        from scripts.evaluate_tiny_lm_memory_qa import build_condition_prompts
+        from src.ltm.tiny_lm import TinyLMConfig
+        question = "Where are persistent memories saved?"
+        evidence = [{"content": "SQLite stores persistent memories."}]
+        prompts = build_condition_prompts(question, evidence, 128)
+        self.assertIn(question, prompts["memory"])
+        self.assertIn("SQLite stores persistent memories.", prompts["memory"])
+        self.assertIn(question, prompts["no_memory"])
+        self.assertNotIn("SQLite stores", prompts["no_memory"])
 
     def test_retrieval_evidence_hit_is_separate_from_generation(self):
         from scripts.evaluate_tiny_lm_memory_qa import retrieval_contains_expected
