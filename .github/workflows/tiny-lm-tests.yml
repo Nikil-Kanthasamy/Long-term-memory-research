@@ -5,6 +5,7 @@ on:
     branches: ["research/long-term-memory-starter"]
     paths:
       - "src/ltm/tiny_lm.py"
+      - "src/ltm/bpe_tokenizer.py"
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
       - "scripts/evaluate_tiny_lm_memory_qa.py"
@@ -67,6 +68,15 @@ jobs:
         run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 64 --temperature 0.8 | tee memory-chat-smoke.txt
       - name: Compare memory and no-memory QA
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
+      - name: Train from-scratch BPE model on WikiText-2 training split
+        run: |
+          python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm-bpe --tokenizer bpe --vocab-size 512 --steps 1000 --batch-size 8 --block-size 128 --d-model 128 --layers 2 --heads 4 --eval-interval 100 --device cpu | tee bpe-training.log
+      - name: Evaluate BPE model on untouched WikiText-2 test split
+        run: python scripts/evaluate_tiny_lm.py --checkpoint models/tiny-memory-lm-bpe/best.pt --input data/wikitext-2/test.txt --device cpu > bpe-test-metrics.json
+      - name: Supervised instruction-tune BPE model
+        run: python scripts/train_tiny_lm_sft.py --input examples/tiny_lm_sft_demo.jsonl --checkpoint models/tiny-memory-lm-bpe/best.pt --output models/tiny-memory-lm-bpe/instruct.pt --steps 2000 --batch-size 4 --device cpu | tee bpe-instruction-tuning.log
+      - name: Compare BPE memory and no-memory QA
+        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-bpe-qa-eval.sqlite3 --output bpe-memory-qa-evaluation.json --max-new-tokens 32
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
@@ -79,4 +89,9 @@ jobs:
             memory-chat-smoke.txt
             memory-qa-evaluation.json
             data/wikitext-2/PROVENANCE.txt
+            models/tiny-memory-lm-bpe/*.pt
+            bpe-training.log
+            bpe-test-metrics.json
+            bpe-instruction-tuning.log
+            bpe-memory-qa-evaluation.json
           retention-days: 30
