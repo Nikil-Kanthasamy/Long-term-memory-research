@@ -93,9 +93,11 @@ def score_expected_response(model, tokenizer, prompt, response, device):
     prompt_ids = tokenizer.encode(prompt)
     response_ids = tokenizer.encode(response.rstrip() + "\\n")
     block_size = model.config.block_size
+    if block_size < 2:
+        raise ValueError("model block_size must be at least 2")
     if len(response_ids) >= block_size:
         response_ids = response_ids[-(block_size - 1):]
-        prompt_ids = []
+        prompt_ids = prompt_ids[-1:]
     else:
         prompt_ids = prompt_ids[-(block_size - len(response_ids)):]
     combined = prompt_ids + response_ids
