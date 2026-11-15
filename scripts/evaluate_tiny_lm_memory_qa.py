@@ -26,7 +26,7 @@ def normalize(text):
 
 def retrieval_only_evidence(retrieved):
     """Return retrieved memory text without asking the language model to rewrite it."""
-    return "\\n".join(item.get("content", "") for item in retrieved if item.get("content"))
+    return "\n".join(item.get("content", "") for item in retrieved if item.get("content"))
 
 
 def retrieval_contains_expected(retrieved, expected_answer):
