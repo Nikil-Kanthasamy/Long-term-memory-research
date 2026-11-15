@@ -44,7 +44,7 @@ def build_memory_prompt(question, memories, block_size, include_memory=True, res
     bytes of retrieved memory. This prevents a long prompt header from silently
     evicting all evidence when the caller truncates to the model context window.
     """
-    tokenizer = ByteTokenizer()
+    tokenizer = tokenizer or ByteTokenizer()
     question_ids = tokenizer.encode(f"Q:{question}\nA:")
     if len(question_ids) >= block_size:
         question_ids = question_ids[-block_size:]
@@ -145,4 +145,12 @@ class TinyLanguageModel(nn.Module):
         model = cls(config)
         model.load_state_dict(checkpoint["state_dict"])
         return model.to(map_location)
-\n\ndef tokenizer_from_checkpoint(checkpoint):\n    """Restore the tokenizer recorded with a model checkpoint."""\n    metadata = checkpoint.get("tokenizer", "utf8-byte-v1")\n    if isinstance(metadata, dict) and metadata.get("type") == "byte-bpe-v1":\n        from src.ltm.bpe_tokenizer import ByteBPETokenizer\n        return ByteBPETokenizer.from_dict(metadata)\n    return ByteTokenizer()\n
+
+
+def tokenizer_from_checkpoint(checkpoint):
+    """Restore the tokenizer recorded with a model checkpoint."""
+    metadata = checkpoint.get("tokenizer", "utf8-byte-v1")
+    if isinstance(metadata, dict) and metadata.get("type") == "byte-bpe-v1":
+        from src.ltm.bpe_tokenizer import ByteBPETokenizer
+        return ByteBPETokenizer.from_dict(metadata)
+    return ByteTokenizer()
