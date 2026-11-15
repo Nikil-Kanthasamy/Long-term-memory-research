@@ -66,7 +66,7 @@ The evaluator reports next-byte cross-entropy and byte-level perplexity. These a
 
 ## Supervised instruction tuning
 
-The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. A tiny synthetic example set is included only to test the pipeline; it is not enough to create a capable assistant.
+The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. The synthetic demonstration set is for pipeline development, not a substitute for a licensed, diverse conversational corpus. The expanded set now contains 48 prompt/response examples across eight project facts and six prompt styles per fact; it remains deliberately small.
 
 ```bash
 python scripts/train_tiny_lm_sft.py \
@@ -85,7 +85,7 @@ python scripts/evaluate_tiny_lm_memory_qa.py \
   --output results/tiny-lm-memory-qa.json
 ```
 
-This reports literal normalized answer-substring accuracy for both `no_memory` and `memory` conditions, along with individual outputs and retrieved-memory counts. The included six-case set is a pipeline smoke test only; it is too small to support claims about memory reasoning. The CI workflow trains an instruction-tuned checkpoint from the WikiText-2 pilot checkpoint and runs this paired evaluation.
+This reports literal normalized answer-substring accuracy for both `no_memory` and `memory` conditions, along with individual outputs and retrieved-memory counts. The held-out evaluation set now contains 16 paraphrased questions across eight facts. It is still a small controlled diagnostic, not a benchmark of general memory reasoning. The CI workflow trains an instruction-tuned checkpoint from the WikiText-2 pilot checkpoint and runs this paired evaluation.
 
 For real experiments, replace the demo with a substantially larger, diverse, reviewed, and appropriately licensed instruction dataset. Keep a held-out prompt/response set and measure exact-answer accuracy, abstention, and memory-vs-no-memory performance. Never treat the demo training loss as evidence of general assistant capability.
 
@@ -109,7 +109,7 @@ Workflow: [run 43749385240](https://github.com/Nikil-Kanthasamy/Long-term-memory
 
 The memory retriever returned one candidate in each of the six test cases, and the evidence check confirmed that the gold answer text was present in retrieved evidence in all six cases (6/6). Yet neither memory-assisted nor no-memory generation produced an exact expected answer (0/6 in each condition). This isolates the current bottleneck in this tiny controlled set: lexical retrieval found the supplied facts, while the randomly initialized language model could not turn those facts into answers. The chat smoke-test output was also incoherent. Therefore this pilot validates that training, checkpointing, retrieval insertion, and evaluation execute end-to-end; it does **not** validate a useful conversational model or a measurable memory benefit.
 
-The very low instruction-tuning loss alongside zero QA accuracy is a warning that the eight-example demonstration set is being memorized or otherwise overfit, not that the model has learned general instruction following. The next experiment should not simply increase the step count. First improve the evaluation and training setup: use a larger curated prompt/response dataset, hold out paraphrased and unseen questions, inspect prompt/target tokenization and generated samples, and compare retrieval correctness separately from generation quality. Keep the same test cases untouched until the pipeline is revised.
+The very low instruction-tuning loss alongside zero QA accuracy is a warning that the earlier eight-example demonstration set was being memorized or otherwise overfit, not that the model had learned general instruction following. The next controlled experiment expands training to 48 prompt/response examples over eight facts and evaluates on 16 separately phrased questions. This is still synthetic and small; the result must be judged by held-out answers, not training loss. The evidence-retrieval score is reported separately from generation quality.
 
 ## Chat with retrieved long-term memory
 
@@ -146,3 +146,8 @@ The `--remember` option explicitly stores the question text as a conversation me
 ## What “full LLM” means here
 
 This creates the neural language-model architecture and training pipeline from scratch, but the first version is a tiny research model, not a competitive general-purpose LLM. A capable model would require a much larger architecture, tokenizer, carefully curated multi-billion-token corpus, substantial accelerator compute, safety tuning, and repeated evaluations. The practical path is to validate this small model and its memory system before scaling.
+
+
+## Expanded instruction-data experiment (in progress)
+
+The next CPU pilot uses 48 synthetic prompt/response examples (eight facts × six distinct prompt styles) and 16 held-out paraphrase questions. The unit tests check training-prompt uniqueness and held-out case IDs. This controlled experiment tests whether more varied conditioning improves answer generation; because all examples concern a small set of project facts, it is not evidence of broad language understanding. See [latest TinyLM workflow](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43749808243).
