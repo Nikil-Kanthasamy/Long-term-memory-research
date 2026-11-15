@@ -8,7 +8,7 @@ Build a small, inspectable decoder-only Transformer whose weights are initialize
 
 - No pretrained model weights are loaded.
 - No hosted generation API is called by the tiny-model training or inference scripts.
-- The tokenizer is a fixed UTF-8 byte vocabulary (256 IDs), so there is no downloaded pretrained tokenizer.
+- The original baseline uses a fixed UTF-8 byte vocabulary (256 IDs). An experimental byte-level BPE tokenizer is now trained from the training split only; neither path uses a downloaded pretrained tokenizer.
 - The decoder-only Transformer, embeddings, causal attention stack, and output head are initialized randomly and trained with next-byte prediction.
 - Persistent memory remains external to model weights. At inference, the existing SQLite store retrieves relevant memory snippets and places them before the user question.
 
@@ -174,3 +174,12 @@ Workflow: [run 43751361173](https://github.com/Nikil-Kanthasamy/Long-term-memory
 | WikiText-2 held-out test perplexity | 11.4529 per byte |
 
 The rerun passed end-to-end, but generated answers remained incoherent and exact-match accuracy did not improve. The SFT loss decreased, but that is not evidence of generalization. This establishes that correcting prompt alignment alone is insufficient for this byte-level 445,952-parameter model. The next useful experiment should change the modeling/data setup rather than simply add more optimization steps: a subword tokenizer and a more representative instruction dataset would address major limitations, while preserving a strict held-out set and no-memory/memory comparison. Retrieval also remains imperfect: three of sixteen questions did not retrieve evidence containing the literal expected answer. No claim of useful memory-conditioned generation is supported by this run.
+
+
+## Learned tokenizer comparison (CPU experiment added)
+
+A second tokenizer path now trains deterministic byte-level BPE merges from the WikiText-2 training split only. It starts with all 256 byte values, learns up to 256 merge operations (target vocabulary 512), and stores the merge table in the model checkpoint. No tokenizer model or vocabulary is downloaded. Validation and test text are never used to fit merges.
+
+The BPE tokenizer is integrated through pretraining, answer-only supervised tuning, memory-prompt construction, chat inference, and held-out language-model evaluation. The paired CPU workflow keeps the Transformer size, context length, optimizer settings, training steps, instruction examples, and held-out QA cases aligned with the byte-token baseline. It reports token/byte ratios and held-out loss normalized by both token and byte counts. This is a tokenizer/context-efficiency experiment; lower token counts or training loss alone do not establish better answers.
+
+New tests cover Unicode round-tripping, deterministic merge training, compression on repeated text, serialization, and preserving both memory evidence and the question through BPE prompt/SFT encoding. Results will be added only after the full workflow completes.
