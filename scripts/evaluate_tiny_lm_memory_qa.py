@@ -1,7 +1,7 @@
-"""Compare memory and no-memory answers from a locally trained TinyLM.
+""""Compare memory and no-memory answers from a locally trained TinyLM.
 
 Cases are JSONL objects with question, memories (list), and expected_answer.
-The script reports literal exact/contains-match accuracy, not semantic quality.
+The script reports generation accuracy separately from evidence retrieval hits.
 """
 import argparse
 import json
@@ -22,6 +22,14 @@ from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel
 
 def normalize(text):
     return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def retrieval_contains_expected(retrieved, expected_answer):
+    """Check whether retrieved evidence contains the normalized gold answer."""
+    expected = normalize(expected_answer)
+    if not expected:
+        return False
+    return any(expected in normalize(item.get("content", "")) for item in retrieved)
 
 
 def load_cases(path):
@@ -46,7 +54,6 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
     if ids.size(1) > model.config.block_size:
         ids = ids[:, -model.config.block_size:]
     with torch.no_grad():
-        # Greedy decoding makes the evaluation repeatable.
         model.eval()
         for _ in range(max_new_tokens):
             context = ids[:, -model.config.block_size:]
@@ -97,15 +104,13 @@ def main():
             expected = normalize(case["expected_answer"])
             observed = normalize(answer)
             matched = bool(expected) and expected in observed
-            condition_results[condition] = {
-                "answer": answer,
-                "matched": matched,
-            }
+            condition_results[condition] = {"answer": answer, "matched": matched}
         results.append({
             "case_id": case.get("id", str(index)),
             "question": case["question"],
             "expected_answer": case["expected_answer"],
             "retrieved_memory_count": len(retrieved),
+            "retrieval_hit": retrieval_contains_expected(retrieved, case["expected_answer"]),
             **condition_results,
         })
 
@@ -113,23 +118,30 @@ def main():
     for condition in ("no_memory", "memory"):
         hits = sum(row[condition]["matched"] for row in results)
         summary[condition] = {"correct": hits, "total": len(results), "exact_contains_accuracy": hits / len(results)}
+    retrieval_hits = sum(row["retrieval_hit"] for row in results)
     report = {
-        "evaluation": "synthetic_memory_qa_exact_contains",
+        "evaluation": "synthetic_memory_qa_with_retrieval_evidence",
         "checkpoint_stage": checkpoint.get("stage", "base_language_model"),
         "checkpoint_step": checkpoint.get("step"),
         "cases": len(results),
         "summary": summary,
+        "retrieval_summary": {
+            "gold_answer_present_in_retrieved_evidence": retrieval_hits,
+            "total": len(results),
+            "hit_rate": retrieval_hits / len(results),
+        },
         "results": results,
         "limitations": [
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
-            "Literal normalized answer-substring scoring; paraphrases may be marked wrong.",
+            "Generation uses literal normalized answer-substring scoring; paraphrases may be marked wrong.",
+            "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
         ],
     }
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(json.dumps({"summary": summary, "output": str(output)}, indent=2))
+    print(json.dumps({"summary": summary, "retrieval_summary": report["retrieval_summary"], "output": str(output)}, indent=2))
     if temporary:
         temporary.cleanup()
 
