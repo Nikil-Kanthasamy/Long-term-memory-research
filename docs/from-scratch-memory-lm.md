@@ -182,4 +182,24 @@ A second tokenizer path now trains deterministic byte-level BPE merges from the 
 
 The BPE tokenizer is integrated through pretraining, answer-only supervised tuning, memory-prompt construction, chat inference, and held-out language-model evaluation. The paired CPU workflow keeps the Transformer size, context length, optimizer settings, training steps, instruction examples, and held-out QA cases aligned with the byte-token baseline. It reports token/byte ratios and held-out loss normalized by both token and byte counts. This is a tokenizer/context-efficiency experiment; lower token counts or training loss alone do not establish better answers.
 
-New tests cover Unicode round-tripping, deterministic merge training, compression on repeated text, serialization, and preserving both memory evidence and the question through BPE prompt/SFT encoding. Results will be added only after the full workflow completes.
+New tests cover Unicode round-tripping, deterministic merge training, compression on repeated text, serialization, and preserving both memory evidence and the question through BPE prompt/SFT encoding.
+
+### Completed paired result (16 November 2026)
+
+Full CPU workflow: [run 43752163491](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43752163491). The unit-test workflow also passed: [run 43752167169](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43752167169).
+
+| Measurement | Byte baseline | Learned BPE |
+|---|---:|---:|
+| Vocabulary size | 256 | 512 |
+| Model parameters | 445,952 | 478,720 |
+| Training tokens per input byte | 1.000 | 0.627 |
+| Held-out test cross-entropy (nats/byte, normalized) | 2.4382 | 2.1735 |
+| Held-out byte-normalized perplexity (exp of nats/byte) | 11.4529 | 8.791 |
+| SFT response-only loss, step 1 to 2,000 | 3.4277 to 0.2882 | 4.9368 to 0.2490 |
+| Held-out synthetic QA without memory | 0/16 | 0/16 |
+| Held-out synthetic QA with memory | 0/16 | 0/16 |
+| Gold answer present in retrieved evidence | 13/16 (81.25%) | 13/16 (81.25%) |
+
+The BPE model uses about 37.3% fewer tokens per training byte and has lower held-out cross-entropy when normalized by original text bytes (about 10.9% lower than the byte baseline). This is a useful language-modeling/context-efficiency signal, although the BPE model has a larger embedding vocabulary and therefore 32,768 more parameters. The per-token perplexity values are not directly comparable across tokenizers; the byte-normalized loss is the relevant comparison here.
+
+Crucially, the better language-modeling metric did **not** translate into better memory QA: both tokenizers scored 0/16 with and without retrieved memory, and retrieval evidence coverage remained 13/16. BPE generations contain more recognizable fragments than the byte model but are still not reliable answers. The experiment therefore supports keeping BPE as the more efficient tokenizer for the next iteration, not claiming that a useful memory assistant has been built. The next bottleneck is instruction-following/generalization and the tiny training setup, alongside the three retrieval misses. The model remains randomly initialized; no pretrained weights or hosted generation APIs were used.
