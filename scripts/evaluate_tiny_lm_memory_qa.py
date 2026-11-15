@@ -54,10 +54,10 @@ def load_cases(path):
     return cases
 
 
-def build_condition_prompts(question, retrieved, block_size, tokenizer=None):
-    """Build paired prompts through the same context-budgeted path as chat."""
+def build_condition_prompts(question, retrieved, block_size, tokenizer=None, distractor_memories=None):
+    """Build no-memory, relevant-memory, and irrelevant-memory control prompts."""
     memories = [item.get("content", "") for item in retrieved if item.get("content")]
-    return {
+    prompts = {
         "no_memory": build_memory_prompt(
             question, [], block_size, include_memory=False, tokenizer=tokenizer
         ),
@@ -65,6 +65,11 @@ def build_condition_prompts(question, retrieved, block_size, tokenizer=None):
             question, memories, block_size, include_memory=True, tokenizer=tokenizer
         ),
     }
+    if distractor_memories:
+        prompts["irrelevant_memory"] = build_memory_prompt(
+            question, distractor_memories, block_size, include_memory=True, tokenizer=tokenizer
+        )
+    return prompts
 
 
 def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
@@ -147,8 +152,15 @@ def main():
         for memory in case.get("memories", []):
             store.add_memory(user_id, memory, category="evaluation", importance=1.0, confidence=1.0)
         retrieved = store.search(user_id, case["question"], limit=5, mode="lexical")
+        distractor_memories = []
+        for offset in range(1, len(cases)):
+            candidate = cases[(index + offset) % len(cases)].get("memories", [])
+            if candidate and candidate != case.get("memories", []):
+                distractor_memories = [candidate[0]]
+                break
         prompts = build_condition_prompts(
-            case["question"], retrieved, model.config.block_size, tokenizer
+            case["question"], retrieved, model.config.block_size, tokenizer,
+            distractor_memories=distractor_memories,
         )
         condition_results = {}
         for condition, prompt in prompts.items():
@@ -179,14 +191,15 @@ def main():
         })
 
     summary = {}
-    for condition in ("no_memory", "memory"):
-        hits = sum(row[condition]["matched"] for row in results)
+    conditions = ("no_memory", "memory", "irrelevant_memory")
+    for condition in conditions:
+        hits = sum(row[condition]["matched"] for row in results if condition in row)
         summary[condition] = {"correct": hits, "total": len(results), "exact_contains_accuracy": hits / len(results)}
     retrieval_hits = sum(row["retrieval_hit"] for row in results)
     evidence_hits = sum(row["retrieval_only_evidence"]["matched"] for row in results)
     gold_answer_scores = {}
-    for condition in ("no_memory", "memory"):
-        scores = [row[condition]["gold_answer_score"] for row in results]
+    for condition in conditions:
+        scores = [row[condition]["gold_answer_score"] for row in results if condition in row]
         gold_answer_scores[condition] = {
             "mean_nll": sum(item["mean_nll"] for item in scores) / len(scores),
             "mean_perplexity": sum(item["perplexity"] for item in scores) / len(scores),
@@ -195,6 +208,11 @@ def main():
     gold_answer_nll_delta_memory_minus_no_memory = (
         gold_answer_scores["memory"]["mean_nll"]
         - gold_answer_scores["no_memory"]["mean_nll"]
+    )
+    irrelevant_memory_nll_delta = (
+        gold_answer_scores["irrelevant_memory"]["mean_nll"]
+        - gold_answer_scores["no_memory"]["mean_nll"]
+        if "irrelevant_memory" in gold_answer_scores else None
     )
     report = {
         "evaluation": "synthetic_memory_qa_with_retrieval_evidence",
@@ -215,7 +233,8 @@ def main():
         "gold_answer_likelihood": {
             "by_condition": gold_answer_scores,
             "memory_minus_no_memory_mean_nll": gold_answer_nll_delta_memory_minus_no_memory,
-            "interpretation": "Negative delta means retrieved memory lowers the model's teacher-forced gold-answer NLL; this is not generated-answer accuracy.",
+            "irrelevant_memory_minus_no_memory_mean_nll": irrelevant_memory_nll_delta,
+            "interpretation": "Compare relevant and irrelevant memory deltas against no memory. Teacher-forced NLL is not generated-answer accuracy.",
         },
         "results": results,
         "limitations": [
@@ -225,6 +244,7 @@ def main():
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
             "gold_answer_likelihood is teacher-forced token likelihood, not free-form answer accuracy or proof of semantic reasoning.",
+            "irrelevant_memory is a cross-case distractor control; its fact differs from the current case but may share topic or wording.",
         ],
     }
     output = Path(args.output)
