@@ -39,10 +39,10 @@ def encode_example(prompt, response, block_size):
     """Return input IDs and labels; preserve memory and question when possible."""
     import re
     tokenizer = ByteTokenizer()
-    response_ids = tokenizer.encode(response.rstrip() + "\\n")
+    response_ids = tokenizer.encode(response.rstrip() + "\n")
     # Match the canonical M/Q/A examples and allocate answer space before
     # constructing the prompt, mirroring the inference-time context budget.
-    match = re.fullmatch(r"M:(.*?)\\nQ:(.*?)\\nA:", prompt, flags=re.DOTALL)
+    match = re.fullmatch(r"M:(.*?)\nQ:(.*?)\nA:", prompt, flags=re.DOTALL)
     if match and len(response_ids) < block_size:
         prompt = build_memory_prompt(
             match.group(2), [match.group(1)], block_size,
