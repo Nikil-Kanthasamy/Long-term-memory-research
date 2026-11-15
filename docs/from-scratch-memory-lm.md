@@ -151,3 +151,12 @@ This creates the neural language-model architecture and training pipeline from s
 ## Expanded instruction-data experiment (in progress)
 
 The next CPU pilot uses 48 synthetic prompt/response examples (eight facts × six distinct prompt styles) and 16 held-out paraphrase questions. The unit tests check training-prompt uniqueness and held-out case IDs. This controlled experiment tests whether more varied conditioning improves answer generation; because all examples concern a small set of project facts, it is not evidence of broad language understanding. See [latest TinyLM workflow](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43749808243).
+
+
+## Follow-up diagnosis: context-window truncation
+
+The 48-example / 16-question run (workflow [43749808243](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43749808243)) completed successfully, but answer accuracy was 0/16 both with and without memory. The literal gold answer appeared in retrieved evidence for 13/16 questions (81.25%). The training response loss fell from 3.4140 to 0.3415, but generated answers remained incoherent.
+
+Inspection found a concrete inference-path issue: the previous prompt put long explanatory headers and memory before the question, then truncated from the left to fit a 128-byte context. This could remove the memory evidence. The inference path now uses a compact M:/Q: prompt builder, prioritizes the question, allocates remaining bytes to retrieved evidence, and reserves up to 32 context positions for answer generation so evidence does not immediately slide out of the context. Both chat and QA evaluation use the same builder. Unit tests assert that evidence and question fit together and that generation space is reserved.
+
+This is a prompt/context correctness fix, not evidence of improved model capability. The next completed CPU run must establish whether memory-conditioned answers improve; if not, the next bottleneck is the tiny byte-level model and its SFT data/optimization, not merely prompt truncation.
