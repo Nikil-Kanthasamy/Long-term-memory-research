@@ -28,7 +28,8 @@ def main():
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model = TinyLanguageModel.from_checkpoint(checkpoint, map_location=device)
     raw = Path(args.input).read_bytes()
-    tokens = torch.tensor(list(raw), dtype=torch.long)
+    tokenizer = tokenizer_from_checkpoint(checkpoint)
+    tokens = torch.tensor(tokenizer.encode(raw.decode("utf-8", errors="replace")), dtype=torch.long)
     block = model.config.block_size
     if len(tokens) <= block:
         parser.error("evaluation file must contain more bytes than model block_size")
@@ -53,9 +54,11 @@ def main():
     print(json.dumps({
         "checkpoint_step": checkpoint.get("step"),
         "evaluation_bytes": len(raw),
-        "evaluated_next_bytes": token_count,
-        "mean_cross_entropy_nats_per_byte": mean_loss,
-        "perplexity_per_byte": perplexity,
+        "evaluated_next_tokens": token_count,
+        "tokenizer": checkpoint.get("tokenizer", "utf8-byte-v1") if isinstance(checkpoint.get("tokenizer"), str) else checkpoint["tokenizer"].get("type"),
+        "mean_cross_entropy_nats_per_token": mean_loss,
+        "perplexity_per_token": perplexity,
+        "mean_cross_entropy_nats_per_byte_approx": weighted_loss / len(raw),
         "device": device,
     }, indent=2))
 
