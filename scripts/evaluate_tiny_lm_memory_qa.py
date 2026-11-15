@@ -49,6 +49,19 @@ def load_cases(path):
     return cases
 
 
+def build_condition_prompts(question, retrieved, block_size):
+    """Build paired prompts through the same context-budgeted path as chat."""
+    memories = [item.get("content", "") for item in retrieved if item.get("content")]
+    return {
+        "no_memory": build_memory_prompt(
+            question, [], block_size, include_memory=False
+        ),
+        "memory": build_memory_prompt(
+            question, memories, block_size, include_memory=True
+        ),
+    }
+
+
 def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
     ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
     if ids.size(1) > model.config.block_size:
@@ -89,14 +102,9 @@ def main():
         for memory in case.get("memories", []):
             store.add_memory(user_id, memory, category="evaluation", importance=1.0, confidence=1.0)
         retrieved = store.search(user_id, case["question"], limit=5, mode="lexical")
-        memory_context = "\n".join(f"- {item['content']}" for item in retrieved) or "(no matching memories)"
-        prompts = {
-            "no_memory": f"You are a concise assistant.\nUser: {case['question']}\nAssistant:",
-            "memory": (
-                "Use the supplied memory to answer.\n"
-                f"Memory:\n{memory_context}\nUser: {case['question']}\nAssistant:"
-            ),
-        }
+        prompts = build_condition_prompts(
+            case["question"], retrieved, model.config.block_size
+        )
         condition_results = {}
         for condition, prompt in prompts.items():
             torch.manual_seed(1000 + index)
