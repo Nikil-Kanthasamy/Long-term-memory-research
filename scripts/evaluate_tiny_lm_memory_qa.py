@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 import torch
@@ -52,14 +53,15 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
             logits, _ = model(context)
             next_id = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
             ids = torch.cat((ids, next_id), dim=1)
-    return tokenizer.decode(ids[0, min(ids.size(1), len(tokenizer.encode(prompt))):].tolist()).strip()
+    prompt_length = min(len(tokenizer.encode(prompt)), model.config.block_size)
+    return tokenizer.decode(ids[0, prompt_length:].tolist()).strip()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--cases", required=True)
-    parser.add_argument("--database", default=":memory:")
+    parser.add_argument("--database", help="SQLite path; defaults to an isolated temporary database")
     parser.add_argument("--output", required=True)
     parser.add_argument("--max-new-tokens", type=int, default=48)
     args = parser.parse_args()
@@ -70,7 +72,9 @@ def main():
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model = TinyLanguageModel.from_checkpoint(checkpoint, map_location=device)
     tokenizer = ByteTokenizer()
-    store = MemoryStore(args.database)
+    temporary = tempfile.TemporaryDirectory() if not args.database else None
+    database = args.database or str(Path(temporary.name) / "memory.sqlite3")
+    store = MemoryStore(database)
     cases = load_cases(args.cases)
     results = []
     for index, case in enumerate(cases):
@@ -126,6 +130,8 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"summary": summary, "output": str(output)}, indent=2))
+    if temporary:
+        temporary.cleanup()
 
 
 if __name__ == "__main__":
