@@ -378,3 +378,30 @@ A follow-up experiment adds `scripts/generate_memory_sft.py`, which deterministi
 The QA evaluator now reports mean token-set F1 alongside exact normalized answer-substring accuracy. This makes partial lexical overlap visible when a generated response is not an exact match; it is still not semantic judging and can reward irrelevant token overlap. Teacher-forced NLL remains a separate metric. A test covers exact, partial, unrelated, and empty outputs.
 
 The first generator test run exposed an assertion that mistakenly expected the two literal characters `\\n`; it was corrected to assert an actual newline. The corrected full tiny-LM workflow is still running at the time of this update. No result is yet available for whether the expanded SFT data improves unseen-fact generation. The current evaluation continues to use the original eight held-out fact clusters, so this is an exploratory change rather than a new independent benchmark.
+
+
+
+## Completed memory-grounding SFT follow-up (17 November 2026)
+
+The full CPU workflow [43945536520](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43945536520) completed successfully on source commit `d69dc399c2f3ddbf3d20b03ba33ef859b5b21501`. The full test suite, smoke test, byte and BPE pretraining, held-out corpus evaluation, 112-example memory-grounding SFT, both familiar-paraphrase QA evaluations, both unseen-fact evaluations, and artifact upload all passed. The [30-day workflow artifact](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43945536520/artifacts/14265825111) contains checkpoints, logs, and per-case metrics.
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| Held-out WikiText-2 cross-entropy (nats/byte) | 2.4382 | 2.1735 |
+| Familiar paraphrases: generated exact answers with relevant memory | 0/16 | 2/16 |
+| Familiar paraphrases: mean token-set F1 with relevant memory | 0.0469 | 0.2703 |
+| Familiar paraphrases: relevant-memory minus no-memory gold-answer NLL | -0.5519 | -0.8587 |
+| Familiar paraphrases: irrelevant-memory minus no-memory gold-answer NLL | +0.0540 | +0.5898 |
+| Unseen facts: generated exact answers with relevant memory | 0/16 | 0/16 |
+| Unseen facts: mean token-set F1 with relevant memory | 0.0313 | 0.0295 |
+| Unseen facts: relevant-memory minus no-memory gold-answer NLL | -0.1164 | +0.0136 |
+| Unseen facts: irrelevant-memory minus no-memory gold-answer NLL | +0.0484 | -0.1007 |
+| Retrieved evidence contains gold answer (familiar / unseen) | 16/16 / 16/16 | 16/16 / 16/16 |
+
+The expanded SFT data improved some *diagnostic signals* on the familiar paraphrase set, especially for BPE: relevant context lowered teacher-forced answer NLL, and two generated answers passed exact substring matching. However, this is not a successful general memory QA result. Byte exact generation remained 0/16; BPE was 2/16, and most BPE generations were still malformed or incomplete. Token F1 is a lexical overlap diagnostic, not semantic answer quality.
+
+Crucially, the familiar paraphrase cases are not independent of the training facts in the same way as the unseen-fact set. On the eight unseen fact clusters (16 phrasings), both tokenizers generated 0/16 exact answers with relevant memory. Byte relevant memory lowered mean gold-answer NLL by 0.1164 nats, while BPE raised it by 0.0136 nats. The paired cluster bootstrap (two phrasings averaged within each of eight fact clusters; 20,000 seeded percentile resamples) gives byte 4/8 clusters improved and exploratory 95% interval [-0.4373, +0.1366], and BPE 5/8 improved with interval [-0.3097, +0.4014]. These wide intervals are descriptive only; eight synthetic clusters are insufficient for broad inference.
+
+Retrieval again found answer-containing evidence in all 16 familiar and all 16 unseen cases for both tokenizers. That establishes successful evidence exposure by the lexical retriever, not model comprehension. The retrieval-only baseline can expose the literal answer because the answer is in the retrieved record; it must not be conflated with generated QA. The byte-model chat smoke output was `arndsout dse desther`, illustrating that the model remains far from coherent assistant behavior.
+
+**Conclusion:** the new SFT data increases familiar-set teacher-forced context sensitivity and gives BPE a small number of exact familiar-set hits, but it does not establish generalization to new memory values or reliable free generation. The model still does not qualify as a useful assistant, and memory is still supplied as external SQLite retrieval context rather than learned as persistent model weights. The experiment used random initialization, WikiText-2, CPU GitHub Actions, no pretrained weights, no hosted generation API, no API keys, and no paid compute. The next improvement should target the learning objective and generation protocol (including explicit answer-boundary/stop behavior and evidence-grounded answer formatting), then test on a larger fact-clustered holdout; scaling model size or compute is not justified by these results alone.
