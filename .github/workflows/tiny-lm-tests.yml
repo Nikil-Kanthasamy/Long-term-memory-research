@@ -11,6 +11,7 @@ on:
       - "scripts/train_tiny_lm_sft.py"
       - "scripts/evaluate_tiny_lm_memory_qa.py"
       - "examples/tiny_lm_memory_qa_eval.jsonl"
+      - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
       - "examples/tiny_lm_sft_demo.jsonl"
       - "scripts/chat_tiny_lm.py"
       - "scripts/evaluate_tiny_lm.py"
@@ -27,6 +28,7 @@ on:
       - "scripts/evaluate_tiny_lm_memory_qa.py"
       - "examples/tiny_lm_sft_demo.jsonl"
       - "examples/tiny_lm_memory_qa_eval.jsonl"
+      - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
       - "scripts/chat_tiny_lm.py"
       - "scripts/evaluate_tiny_lm.py"
       - "scripts/prepare_wikitext.py"
@@ -70,7 +72,7 @@ jobs:
         run: python scripts/chat_tiny_lm.py --checkpoint models/tiny-memory-lm/instruct.pt --database /tmp/tiny-lm-memory.sqlite3 --user ci-smoke --question "What is the project?" --max-new-tokens 64 --temperature 0.8 | tee memory-chat-smoke.txt
       - name: Compare memory and no-memory QA
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
-      - name: Train from-scratch BPE model on WikiText-2 training split
+      - name: Evaluate byte model on unseen memory facts\n        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-unseen-qa-eval.sqlite3 --output unseen-memory-qa-evaluation.json --max-new-tokens 32\n      - name: Train from-scratch BPE model on WikiText-2 training split
         run: |
           python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm-bpe --tokenizer bpe --vocab-size 512 --steps 1000 --batch-size 8 --block-size 128 --d-model 128 --layers 2 --heads 4 --eval-interval 100 --device cpu | tee bpe-training.log
       - name: Evaluate BPE model on untouched WikiText-2 test split
@@ -79,7 +81,7 @@ jobs:
         run: python scripts/train_tiny_lm_sft.py --input examples/tiny_lm_sft_demo.jsonl --checkpoint models/tiny-memory-lm-bpe/best.pt --output models/tiny-memory-lm-bpe/instruct.pt --steps 2000 --batch-size 4 --device cpu | tee bpe-instruction-tuning.log
       - name: Compare BPE memory and no-memory QA
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-bpe-qa-eval.sqlite3 --output bpe-memory-qa-evaluation.json --max-new-tokens 32
-      - name: Upload pilot checkpoint and evaluation
+      - name: Evaluate BPE model on unseen memory facts\n        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-bpe-unseen-qa-eval.sqlite3 --output bpe-unseen-memory-qa-evaluation.json --max-new-tokens 32\n      - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
           name: tiny-memory-lm-wikitext2-pilot-${{ github.run_id }}
@@ -96,4 +98,6 @@ jobs:
             bpe-test-metrics.json
             bpe-instruction-tuning.log
             bpe-memory-qa-evaluation.json
+            unseen-memory-qa-evaluation.json
+            bpe-unseen-memory-qa-evaluation.json
           retention-days: 30
