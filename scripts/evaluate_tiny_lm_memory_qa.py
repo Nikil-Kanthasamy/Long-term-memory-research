@@ -24,6 +24,18 @@ def normalize(text):
     return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
 
 
+def token_f1(prediction, reference):
+    """Compute token-set F1 after normalization; diagnostic, not semantic judging."""
+    predicted = set(normalize(prediction).split())
+    expected = set(normalize(reference).split())
+    if not predicted or not expected:
+        return 0.0
+    overlap = len(predicted & expected)
+    precision = overlap / len(predicted)
+    recall = overlap / len(expected)
+    return 2 * precision * recall / (precision + recall) if overlap else 0.0
+
+
 def retrieval_only_evidence(retrieved):
     """Return retrieved memory text without asking the language model to rewrite it."""
     return "\n".join(item.get("content", "") for item in retrieved if item.get("content"))
@@ -180,6 +192,7 @@ def main():
             condition_results[condition] = {
                 "answer": answer,
                 "matched": matched,
+                "token_f1": token_f1(answer, case["expected_answer"]),
                 "gold_answer_score": expected_score,
             }
         results.append({
@@ -201,7 +214,15 @@ def main():
     for condition in conditions:
         hits = sum(row[condition]["matched"] for row in results if condition in row)
         total = sum(condition in row for row in results)
-        summary[condition] = {"correct": hits, "total": total, "exact_contains_accuracy": hits / total if total else 0.0}
+        summary[condition] = {
+            "correct": hits,
+            "total": total,
+            "exact_contains_accuracy": hits / total if total else 0.0,
+            "mean_token_f1": (
+                sum(row[condition]["token_f1"] for row in results if condition in row) / total
+                if total else 0.0
+            ),
+        }
     retrieval_hits = sum(row["retrieval_hit"] for row in results)
     evidence_hits = sum(row["retrieval_only_evidence"]["matched"] for row in results)
     gold_answer_scores = {}
@@ -246,7 +267,7 @@ def main():
         "results": results,
         "limitations": [
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
-            "Generation uses literal normalized answer-substring scoring; paraphrases may be marked wrong.",
+            "Generation exact-contains scoring uses literal normalized answer substrings; paraphrases may be marked wrong. Mean token-set F1 is also reported as a partial-overlap diagnostic, not semantic judging.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
