@@ -152,6 +152,31 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertIn("decoder-only Transformer", prompts["irrelevant_memory"])
         self.assertIn(question, prompts["irrelevant_memory"])
 
+    def test_evaluator_prefers_curated_irrelevant_memories(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases, build_condition_prompts
+        from src.ltm.tiny_lm import ByteTokenizer
+        case = {
+            "id": "curated",
+            "question": "Which database stores memories?",
+            "memories": ["Memories are stored in SQLite."],
+            "irrelevant_memories": ["The model uses a decoder-only Transformer."],
+            "expected_answer": "SQLite",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cases.jsonl"
+            path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+            loaded = load_cases(path)
+        self.assertEqual(loaded[0]["irrelevant_memories"], case["irrelevant_memories"])
+        prompts = build_condition_prompts(
+            case["question"], [{"content": case["memories"][0]}], 128,
+            ByteTokenizer(), distractor_memories=loaded[0]["irrelevant_memories"],
+        )
+        self.assertIn("decoder-only Transformer", prompts["irrelevant_memory"])
+        self.assertNotIn("SQLite", prompts["irrelevant_memory"])
+
     def test_retrieval_only_evidence_baseline(self):
         from scripts.evaluate_tiny_lm_memory_qa import retrieval_only_evidence
         from scripts.evaluate_tiny_lm_memory_qa import normalize
