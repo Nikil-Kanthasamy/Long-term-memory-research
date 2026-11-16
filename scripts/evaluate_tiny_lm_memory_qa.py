@@ -77,7 +77,7 @@ def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=
         deltas.append(left - right)
     if not deltas:
         return {"clusters": 0, "mean_delta": None, "ci_95": None,
-                "clusters_improved": 0, "clusters_worsened": 0, "clusters_tied": 0}
+                "positive_delta_clusters": 0, "negative_delta_clusters": 0, "zero_delta_clusters": 0}
     observed = sum(deltas) / len(deltas)
     rng = __import__("random").Random(seed)
     boot_means = []
@@ -91,9 +91,9 @@ def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=
         "clusters": len(deltas),
         "mean_delta": observed,
         "ci_95": [lower, upper],
-        "clusters_improved": sum(value > 0 for value in deltas),
-        "clusters_worsened": sum(value < 0 for value in deltas),
-        "clusters_tied": sum(value == 0 for value in deltas),
+        "positive_delta_clusters": sum(value > 0 for value in deltas),
+        "negative_delta_clusters": sum(value < 0 for value in deltas),
+        "zero_delta_clusters": sum(value == 0 for value in deltas),
         "metric_definition": f"mean({condition}.{metric}) - mean({baseline}.{metric}) within each fact cluster, then averaged across clusters",
         "bootstrap_replicates": replicates,
         "bootstrap_seed": seed,
