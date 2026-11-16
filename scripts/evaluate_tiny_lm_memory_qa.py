@@ -54,6 +54,52 @@ def contains_normalized_answer(text, expected_answer):
     )
 
 
+def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=2000, seed=2026):
+    """Paired cluster bootstrap for condition-minus-baseline metric differences.
+
+    Each fact cluster contributes one mean per condition. Bootstrap resampling
+    happens over clusters, not paraphrase rows, so paraphrases are not treated
+    as independent facts.
+    """
+    grouped = {}
+    for row in results:
+        cluster_id = row.get("fact_cluster_id") or row["case_id"]
+        if condition not in row or baseline not in row:
+            continue
+        grouped.setdefault(cluster_id, {"condition": [], "baseline": []})
+        grouped[cluster_id]["condition"].append(row[condition][metric])
+        grouped[cluster_id]["baseline"].append(row[baseline][metric])
+    deltas = []
+    for cluster_id in sorted(grouped):
+        values = grouped[cluster_id]
+        left = sum(values["condition"]) / len(values["condition"])
+        right = sum(values["baseline"]) / len(values["baseline"])
+        deltas.append(left - right)
+    if not deltas:
+        return {"clusters": 0, "mean_delta": None, "ci_95": None,
+                "clusters_improved": 0, "clusters_worsened": 0, "clusters_tied": 0}
+    observed = sum(deltas) / len(deltas)
+    rng = __import__("random").Random(seed)
+    boot_means = []
+    for _ in range(replicates):
+        sample = [deltas[rng.randrange(len(deltas))] for _ in deltas]
+        boot_means.append(sum(sample) / len(sample))
+    boot_means.sort()
+    lower = boot_means[int(0.025 * (replicates - 1))]
+    upper = boot_means[int(0.975 * (replicates - 1))]
+    return {
+        "clusters": len(deltas),
+        "mean_delta": observed,
+        "ci_95": [lower, upper],
+        "clusters_improved": sum(value > 0 for value in deltas),
+        "clusters_worsened": sum(value < 0 for value in deltas),
+        "clusters_tied": sum(value == 0 for value in deltas),
+        "metric_definition": f"mean({condition}.{metric}) - mean({baseline}.{metric}) within each fact cluster, then averaged across clusters",
+        "bootstrap_replicates": replicates,
+        "bootstrap_seed": seed,
+    }
+
+
 def retrieval_contains_expected(retrieved, expected_answer):
     """Check whether retrieved evidence contains the complete normalized answer."""
     return any(
@@ -211,6 +257,7 @@ def main():
             }
         results.append({
             "case_id": case.get("id", str(index)),
+            "fact_cluster_id": case.get("fact_cluster_id", case.get("id", str(index))),
             "question": case["question"],
             "expected_answer": case["expected_answer"],
             "retrieved_memory_count": len(retrieved),
@@ -256,6 +303,37 @@ def main():
         - gold_answer_scores["no_memory"]["mean_nll"]
         if "irrelevant_memory" in gold_answer_scores else None
     )
+    cluster_analysis = {
+        "independent_fact_clusters": len({row["fact_cluster_id"] for row in results}),
+        "memory_minus_no_memory": {
+            "exact_match_accuracy": cluster_bootstrap_delta(
+                results, "memory", "no_memory", "matched"
+            ),
+            "token_f1": cluster_bootstrap_delta(
+                results, "memory", "no_memory", "token_f1"
+            ),
+        },
+    }
+    # Aggregate teacher-forced NLL per cluster before paired resampling.
+    nll_cluster_rows = []
+    nll_grouped = {}
+    for row in results:
+        cluster_id = row["fact_cluster_id"]
+        nll_grouped.setdefault(cluster_id, {"memory": [], "no_memory": []})
+        for condition in ("memory", "no_memory"):
+            nll_grouped[cluster_id][condition].append(
+                row[condition]["gold_answer_score"]["mean_nll"]
+            )
+    for cluster_id, values in nll_grouped.items():
+        nll_cluster_rows.append({
+            "case_id": cluster_id,
+            "fact_cluster_id": cluster_id,
+            "memory": {"nll": sum(values["memory"]) / len(values["memory"])},
+            "no_memory": {"nll": sum(values["no_memory"]) / len(values["no_memory"])},
+        })
+    cluster_analysis["memory_minus_no_memory"]["gold_answer_mean_nll"] = (
+        cluster_bootstrap_delta(nll_cluster_rows, "memory", "no_memory", "nll")
+    )
     report = {
         "evaluation": "synthetic_memory_qa_with_retrieval_evidence",
         "checkpoint_stage": checkpoint.get("stage", "base_language_model"),
@@ -272,6 +350,7 @@ def main():
             "total": len(results),
             "evidence_contains_gold_accuracy": evidence_hits / len(results),
         },
+        "cluster_analysis": cluster_analysis,
         "gold_answer_likelihood": {
             "by_condition": gold_answer_scores,
             "memory_minus_no_memory_mean_nll": gold_answer_nll_delta_memory_minus_no_memory,
@@ -280,7 +359,8 @@ def main():
         },
         "results": results,
         "limitations": [
-            "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
+            "Synthetic evaluation facts are manually authored; results do not establish performance on real user memories.",
+            "Fact-cluster bootstrap resamples independent fact clusters, not paraphrase rows; intervals remain exploratory for this small synthetic benchmark.",
             "Generation exact-match scoring requires a complete contiguous sequence of normalized answer tokens; paraphrases may still be marked wrong. Mean token-set F1 is also reported as a partial-overlap diagnostic, not semantic judging.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
@@ -292,7 +372,7 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(json.dumps({"summary": summary, "retrieval_summary": report["retrieval_summary"], "gold_answer_likelihood": report["gold_answer_likelihood"], "output": str(output)}, indent=2))
+    print(json.dumps({"summary": summary, "retrieval_summary": report["retrieval_summary"], "cluster_analysis": report["cluster_analysis"], "gold_answer_likelihood": report["gold_answer_likelihood"], "output": str(output)}, indent=2))
     if temporary:
         temporary.cleanup()
 
