@@ -82,6 +82,21 @@ class TinyLanguageModelTests(unittest.TestCase):
         generated = model.generate(inputs[:1, :4], max_new_tokens=3, temperature=1.0, top_k=10)
         self.assertEqual(tuple(generated.shape), (1, 7))
 
+    def test_generation_accepts_multi_token_stop_sequence(self):
+        import torch
+        from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+        model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=16, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0,
+        ))
+        prompt = torch.tensor([[1, 2, 3]], dtype=torch.long)
+        generated = model.generate(
+            prompt, max_new_tokens=4, temperature=1.0, top_k=1,
+            stop_sequence_ids=[255, 254],
+        )
+        self.assertLessEqual(generated.size(1), prompt.size(1) + 4)
+        self.assertEqual(tuple(generated.shape[:1]), (1,))
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "optional PyTorch dependency is not installed")
 class TinyLMSupervisedTuningTests(unittest.TestCase):
