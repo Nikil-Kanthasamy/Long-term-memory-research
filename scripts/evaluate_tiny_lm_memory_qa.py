@@ -91,6 +91,8 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
     ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
     if ids.size(1) > model.config.block_size:
         ids = ids[:, -model.config.block_size:]
+    # Record the actual prompt boundary after any context-window truncation.
+    prompt_length = ids.size(1)
     with torch.no_grad():
         model.eval()
         for _ in range(max_new_tokens):
@@ -100,7 +102,6 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
             ids = torch.cat((ids, next_id), dim=1)
             if tokenizer.decode(ids[0, prompt_length:].tolist()).endswith("\n"):
                 break
-    prompt_length = min(len(tokenizer.encode(prompt)), model.config.block_size)
     return tokenizer.decode(ids[0, prompt_length:].tolist()).strip()
 
 
