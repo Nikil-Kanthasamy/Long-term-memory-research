@@ -90,12 +90,16 @@ class TinyLanguageModelTests(unittest.TestCase):
             n_heads=4, n_layers=1, dropout=0.0,
         ))
         prompt = torch.tensor([[1, 2, 3]], dtype=torch.long)
-        generated = model.generate(
-            prompt, max_new_tokens=4, temperature=1.0, top_k=1,
-            stop_sequence_ids=[255, 254],
-        )
-        self.assertLessEqual(generated.size(1), prompt.size(1) + 4)
-        self.assertEqual(tuple(generated.shape[:1]), (1,))
+        from unittest.mock import patch
+        with patch("torch.multinomial", side_effect=[
+            torch.tensor([[255]]), torch.tensor([[254]]),
+        ]):
+            generated = model.generate(
+                prompt, max_new_tokens=4, temperature=1.0, top_k=1,
+                stop_sequence_ids=[255, 254],
+            )
+        self.assertEqual(generated.size(1), prompt.size(1) + 2)
+        self.assertEqual(generated[0, -2:].tolist(), [255, 254])
 
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "optional PyTorch dependency is not installed")
