@@ -224,6 +224,19 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertGreaterEqual(len(heldout), 12)
         self.assertEqual(len({row["id"] for row in heldout}), len(heldout))
 
+    def test_unseen_fact_evaluation_is_disjoint_from_sft_facts(self):
+        from scripts.train_tiny_lm_sft import load_examples
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+        training = load_examples("examples/tiny_lm_sft_demo.jsonl")
+        heldout = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
+        training_text = "\\n".join(row["prompt"] + " " + row["response"] for row in training).lower()
+        self.assertEqual(len(heldout), 16)
+        self.assertEqual(len({row["id"] for row in heldout}), 16)
+        for row in heldout:
+            self.assertNotIn(row["expected_answer"].lower(), training_text)
+            self.assertTrue(row["irrelevant_memories"])
+            self.assertNotIn(row["expected_answer"].lower(), " ".join(row["irrelevant_memories"]).lower())
+
 
 if __name__ == "__main__":
     unittest.main()
