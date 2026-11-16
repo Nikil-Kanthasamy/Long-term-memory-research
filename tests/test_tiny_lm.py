@@ -234,6 +234,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(len({row["id"] for row in heldout}), 16)
         for row in heldout:
             self.assertNotIn(row["expected_answer"].lower(), training_text)
+            self.assertNotIn(row["memories"][0].lower(), training_text)
             self.assertTrue(row["irrelevant_memories"])
             self.assertNotIn(row["expected_answer"].lower(), " ".join(row["irrelevant_memories"]).lower())
 
