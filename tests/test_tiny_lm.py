@@ -265,8 +265,11 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         training = load_examples("examples/tiny_lm_sft_demo.jsonl")
         heldout = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
         training_text = " ".join(row["prompt"] + " " + row["response"] for row in training).lower()
-        self.assertEqual(len(heldout), 16)
-        self.assertEqual(len({row["id"] for row in heldout}), 16)
+        self.assertEqual(len(heldout), 64)
+        self.assertEqual(len({row["id"] for row in heldout}), 64)
+        clusters = {row["fact_cluster_id"] for row in heldout}
+        self.assertEqual(len(clusters), 32)
+        self.assertTrue(all(sum(row["fact_cluster_id"] == cluster for row in heldout) == 2 for cluster in clusters))
         for row in heldout:
             self.assertNotIn(row["expected_answer"].lower(), training_text)
             self.assertNotIn(row["memories"][0].lower(), training_text)
@@ -319,6 +322,36 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(answer, "")
         self.assertEqual(argmax.call_count, 1)
 
+
+    def test_fact_cluster_bootstrap_resamples_clusters_not_paraphrases(self):
+        from scripts.evaluate_tiny_lm_memory_qa import cluster_bootstrap_delta
+        rows = [
+            {"case_id": "a1", "fact_cluster_id": "A", "memory": {"score": 2.0}, "no_memory": {"score": 1.0}},
+            {"case_id": "b1", "fact_cluster_id": "B", "memory": {"score": 0.0}, "no_memory": {"score": 1.0}},
+            {"case_id": "b2", "fact_cluster_id": "B", "memory": {"score": 0.0}, "no_memory": {"score": 1.0}},
+            {"case_id": "b3", "fact_cluster_id": "B", "memory": {"score": 0.0}, "no_memory": {"score": 1.0}},
+        ]
+        first = cluster_bootstrap_delta(rows, "memory", "no_memory", "score", replicates=500, seed=17)
+        second = cluster_bootstrap_delta(rows, "memory", "no_memory", "score", replicates=500, seed=17)
+        self.assertEqual(first, second)
+        self.assertEqual(first["clusters"], 2)
+        self.assertAlmostEqual(first["mean_delta"], 0.0)
+        self.assertEqual(first["clusters_improved"], 1)
+        self.assertEqual(first["clusters_worsened"], 1)
+
+    def test_unseen_fact_clusters_have_two_paraphrases_each(self):
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+        cases = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
+        by_cluster = {}
+        for case in cases:
+            by_cluster.setdefault(case["fact_cluster_id"], []).append(case)
+        self.assertEqual(len(by_cluster), 32)
+        self.assertTrue(all(len(rows) == 2 for rows in by_cluster.values()))
+        self.assertTrue(all(
+            rows[0]["expected_answer"] == rows[1]["expected_answer"]
+            and rows[0]["memories"] == rows[1]["memories"]
+            for rows in by_cluster.values()
+        ))
 
 if __name__ == "__main__":
     unittest.main()
