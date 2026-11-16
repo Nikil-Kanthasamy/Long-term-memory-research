@@ -167,7 +167,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "cases.jsonl"
-            path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+            path.write_text(json.dumps(case) + "\n", encoding="utf-8")
             loaded = load_cases(path)
         self.assertEqual(loaded[0]["irrelevant_memories"], case["irrelevant_memories"])
         prompts = build_condition_prompts(
