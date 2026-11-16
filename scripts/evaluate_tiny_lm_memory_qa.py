@@ -98,6 +98,8 @@ def generate_answer(model, tokenizer, prompt, max_new_tokens, device):
             logits, _ = model(context)
             next_id = torch.argmax(logits[:, -1, :], dim=-1, keepdim=True)
             ids = torch.cat((ids, next_id), dim=1)
+            if tokenizer.decode(ids[0, prompt_length:].tolist()).endswith("\n"):
+                break
     prompt_length = min(len(tokenizer.encode(prompt)), model.config.block_size)
     return tokenizer.decode(ids[0, prompt_length:].tolist()).strip()
 
