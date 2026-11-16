@@ -302,3 +302,26 @@ The relevant-memory prompt lowers teacher-forced gold-answer NLL for both tokeni
 Free generation still scores 0/16 in every condition. Thus this experiment does **not** show a usable QA model or successful long-term-memory assistant. Retrieval exposes the gold answer in all 16 cases, but the model cannot generate it reliably. Keep this distinction explicit: retrieval supplies external context; it does not update model weights or prove that the model has learned persistent memories.
 
 The experiment used randomly initialized weights, CPU-only GitHub Actions, no hosted generation API, no API key, and no paid compute. The next experiment should improve the control design before making stronger claims: create manually checked, topic-matched but answer-irrelevant distractors, report per-question paired NLL deltas and uncertainty, and expand the held-out set. Do not increase model size or compute until the evaluation is more diagnostic.
+
+
+## Curated irrelevant-memory control (16 November 2026)
+
+Full CPU workflow: [run 43940680500](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43940680500), on commit `ffb6b81`. The 16 held-out QA cases now include manually selected, topic-matched facts that are intended to be irrelevant to each question's expected answer. This replaces the weaker cross-case distractor fallback for these cases. The complete workflow passed tests, random-initialized byte and BPE training, held-out WikiText-2 evaluation, instruction tuning, memory QA comparisons, and artifact upload. Artifact [14261809338](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43940680500/artifacts/14261809338) contains the checkpoints, logs, metrics, and per-case outputs.
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| No-memory mean gold-answer NLL | 3.8713 | 3.1531 |
+| Relevant-memory mean gold-answer NLL | 3.2912 | 2.6752 |
+| Curated irrelevant-memory mean gold-answer NLL | 3.8674 | 3.7695 |
+| Relevant minus no-memory NLL | -0.5801 | -0.4778 |
+| Curated irrelevant minus no-memory NLL | -0.0038 | +0.6165 |
+| Generated QA, no memory | 0/16 | 0/16 |
+| Generated QA, relevant memory | 0/16 | 0/16 |
+| Generated QA, curated irrelevant memory | 0/16 | 0/16 |
+| Gold answer present in retrieved evidence | 16/16 | 16/16 |
+
+The relevant-memory prompt lowers teacher-forced gold-answer NLL for both tokenizers. The curated distractor has almost no aggregate effect for the byte model and substantially worsens NLL for BPE. This is a more controlled and topic-matched comparison than the earlier cross-case distractor test, but it is still a 16-question synthetic diagnostic. The near-zero byte-model distractor delta means this run does not show a consistent irrelevant-memory penalty across tokenizers. Per-question paired deltas and uncertainty should be examined before interpreting aggregate effects.
+
+Generated-answer accuracy remains 0/16 in all conditions, despite 16/16 retrieval evidence coverage. Teacher-forced NLL measures how probable the gold answer is when supplied as the target; it is not free-generation accuracy, reasoning ability, or evidence that memories have been written into model weights. Persistent memory remains external SQLite retrieval context. The model is still not a useful QA assistant.
+
+The run used random initialization, CPU-only GitHub Actions, no pretrained weights, no hosted generation API, no API keys, and no paid compute. A follow-up full workflow on the fixture-corrected branch head is running separately; the source/test correction does not change these evaluator or dataset results.
