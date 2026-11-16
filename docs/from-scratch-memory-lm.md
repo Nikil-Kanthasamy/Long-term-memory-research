@@ -336,3 +336,12 @@ These paired results strengthen the observation that relevant memory makes the g
 Generated-answer accuracy remains 0/16 in all conditions, despite 16/16 retrieval evidence coverage. Teacher-forced NLL measures how probable the gold answer is when supplied as the target; it is not free-generation accuracy, reasoning ability, or evidence that memories have been written into model weights. Persistent memory remains external SQLite retrieval context. The model is still not a useful QA assistant.
 
 The run used random initialization, CPU-only GitHub Actions, no pretrained weights, no hosted generation API, no API keys, and no paid compute. A follow-up full workflow on the fixture-corrected branch head is running separately; the source/test correction does not change these evaluator or dataset results.
+
+
+## Unseen-fact memory generalization evaluation (17 November 2026)
+
+The earlier 16-question held-out set paraphrases facts that also occur in the SFT demonstrations. It is useful for measuring paraphrase transfer, but it does not test whether the model can use memory to answer about facts absent from instruction tuning. A second diagnostic set, `examples/tiny_lm_memory_qa_unseen_facts.jsonl`, now addresses that limitation.
+
+The new set contains 16 questions over eight separate fact values (archive export format, sync interval, audit retention, backup region, embedding-cache dimensionality, conflict policy, memory identifier format, and retrieval similarity threshold). Each fact has two question phrasings and one manually selected distractor. The expected values and complete memory facts are checked to be absent from the SFT demonstration text. The workflow evaluates the same byte and BPE instruction-tuned checkpoints on both the original paraphrase set and this unseen-fact set, using no-memory, relevant-memory, and curated irrelevant-memory conditions.
+
+This is a diagnostic of memory-conditioned fact use on unseen values, not a broad benchmark. It is still synthetic, small, and created by the project author; exact substring scoring and lexical retrieval have known limitations. The full CPU run is in progress; results will be added here only after both tokenizers complete and artifacts are inspected. No model weights or training examples are changed by adding this evaluation set.
