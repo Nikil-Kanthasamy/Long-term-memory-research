@@ -259,6 +259,13 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             self.assertIn("\nQ:", row["prompt"])
             self.assertTrue(row["response"].strip())
 
+    def test_generated_answer_token_f1_reports_partial_overlap(self):
+        from scripts.evaluate_tiny_lm_memory_qa import token_f1
+        self.assertEqual(token_f1("SQLite database", "SQLite database"), 1.0)
+        self.assertAlmostEqual(token_f1("SQLite only", "SQLite database"), 0.5)
+        self.assertEqual(token_f1("unrelated output", "SQLite database"), 0.0)
+        self.assertEqual(token_f1("", "SQLite"), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
