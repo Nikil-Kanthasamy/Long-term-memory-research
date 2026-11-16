@@ -238,6 +238,27 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             self.assertTrue(row["irrelevant_memories"])
             self.assertNotIn(row["expected_answer"].lower(), " ".join(row["irrelevant_memories"]).lower())
 
+    def test_generated_memory_grounding_sft_is_deterministic_and_value_disjoint(self):
+        from scripts.generate_memory_sft import build_examples
+        from scripts.train_tiny_lm_sft import load_examples
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+        generated = build_examples()
+        self.assertEqual(len(generated), 64)
+        self.assertEqual(len({row["id"] for row in generated}), 64)
+        self.assertEqual(generated, build_examples())
+        training = load_examples("examples/tiny_lm_sft_demo.jsonl")
+        heldout = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
+        training_text = " ".join(
+            row["prompt"] + " " + row["response"] for row in training + generated
+        ).lower()
+        for case in heldout:
+            self.assertNotIn(case["expected_answer"].lower(), training_text)
+            self.assertNotIn(case["memories"][0].lower(), training_text)
+        for row in generated:
+            self.assertIn("M:", row["prompt"])
+            self.assertIn("\\nQ:", row["prompt"])
+            self.assertTrue(row["response"].strip())
+
 
 if __name__ == "__main__":
     unittest.main()
