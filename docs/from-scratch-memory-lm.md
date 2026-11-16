@@ -320,7 +320,18 @@ Full CPU workflow: [run 43940680500](https://github.com/Nikil-Kanthasamy/Long-te
 | Generated QA, curated irrelevant memory | 0/16 | 0/16 |
 | Gold answer present in retrieved evidence | 16/16 | 16/16 |
 
-The relevant-memory prompt lowers teacher-forced gold-answer NLL for both tokenizers. The curated distractor has almost no aggregate effect for the byte model and substantially worsens NLL for BPE. This is a more controlled and topic-matched comparison than the earlier cross-case distractor test, but it is still a 16-question synthetic diagnostic. The near-zero byte-model distractor delta means this run does not show a consistent irrelevant-memory penalty across tokenizers. Per-question paired deltas and uncertainty should be examined before interpreting aggregate effects.
+The relevant-memory prompt lowers teacher-forced gold-answer NLL for both tokenizers. The curated distractor has almost no aggregate effect for the byte model and substantially worsens NLL for BPE. To inspect the paired case-level effects, I computed each condition's NLL minus the same question's no-memory NLL, then used 20,000 seeded percentile-bootstrap resamples of the 16 paired deltas:
+
+| Paired NLL delta vs no memory | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| Relevant memory: mean delta | -0.5801 | -0.4778 |
+| Relevant memory: cases improved / worsened | 14 / 2 | 15 / 1 |
+| Relevant memory: exploratory 95% bootstrap interval | [-0.9419, -0.2486] | [-0.6960, -0.2663] |
+| Curated irrelevant memory: mean delta | -0.0038 | +0.6165 |
+| Curated irrelevant memory: cases improved / worsened | 8 / 8 | 2 / 14 |
+| Curated irrelevant memory: exploratory 95% bootstrap interval | [-0.3452, +0.3447] | [+0.3912, +0.8483] |
+
+These paired results strengthen the observation that relevant memory makes the gold answer more probable in this small test set: 14/16 byte cases and 15/16 BPE cases improved, and both exploratory bootstrap intervals are below zero. The curated irrelevant control is less consistent across tokenizers: it has no clear aggregate effect for byte (interval spans zero), but worsens gold-answer likelihood for BPE (14/16 cases, interval above zero). Bootstrap intervals over only 16 synthetic examples are descriptive and should not be treated as broad-population statistical proof. This is a more controlled and topic-matched comparison than the earlier cross-case distractor test, but it remains a small diagnostic.
 
 Generated-answer accuracy remains 0/16 in all conditions, despite 16/16 retrieval evidence coverage. Teacher-forced NLL measures how probable the gold answer is when supplied as the target; it is not free-generation accuracy, reasoning ability, or evidence that memories have been written into model weights. Persistent memory remains external SQLite retrieval context. The model is still not a useful QA assistant.
 
