@@ -119,7 +119,7 @@ class TinyLanguageModel(nn.Module):
         return logits, loss
 
     @torch.no_grad()
-    def generate(self, input_ids, max_new_tokens=200, temperature=0.8, top_k=40):
+    def generate(self, input_ids, max_new_tokens=200, temperature=0.8, top_k=40, stop_sequence_ids=None):
         if temperature <= 0:
             raise ValueError("temperature must be positive")
         self.eval()
@@ -134,6 +134,12 @@ class TinyLanguageModel(nn.Module):
             probabilities = F.softmax(logits, dim=-1)
             next_token = torch.multinomial(probabilities, num_samples=1)
             input_ids = torch.cat((input_ids, next_token), dim=1)
+            if stop_sequence_ids:
+                stop = [int(token) for token in stop_sequence_ids]
+                if stop and input_ids.size(1) >= len(stop):
+                    suffixes = input_ids[:, -len(stop):].tolist()
+                    if all(suffix == stop for suffix in suffixes):
+                        break
         return input_ids
 
     def checkpoint(self):
