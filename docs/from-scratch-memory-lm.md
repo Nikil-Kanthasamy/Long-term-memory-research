@@ -412,3 +412,18 @@ Retrieval again found answer-containing evidence in all 16 familiar and all 16 u
 The SFT pipeline appends a newline after each target response, but the inference paths previously generated a fixed number of tokens without stopping at that learned boundary. This could let the model continue with unrelated text after a short answer and lower exact-match scores. `TinyLanguageModel.generate` now accepts an optional token-sequence stop marker. The chat CLI passes the active tokenizer's encoding of newline, and the QA evaluator stops when decoded generated text reaches newline. Using a token sequence rather than assuming one token keeps the interface compatible with byte and BPE tokenizers.
 
 A unit test forces a two-token stop marker and asserts that generation ends immediately after the marker. This is an inference/protocol correction only: it does not change model weights or establish improved answer quality. The next CPU run must compare outputs and metrics against the completed 112-example SFT baseline.
+
+
+## Expanded independent unseen-fact benchmark (17 November 2026)
+
+The unseen-fact fixture now contains **64 questions over 32 independent synthetic fact clusters**, with two paraphrases per fact. Each cluster has one answer-bearing memory and a manually authored answer-irrelevant distractor. The 32 values and memory statements are checked for exact textual overlap with both the 48-example demonstration file and the 64 generated memory-grounding SFT examples. This is a larger and more defensible diagnostic than the earlier eight-cluster holdout, although the facts remain synthetic and manually authored.
+
+The QA evaluator now reports paired memory-minus-no-memory deltas after averaging paraphrases within each fact cluster. It uses a seeded percentile bootstrap that resamples clusters, not individual paraphrase rows, and reports the 95% interval, cluster count, and positive/negative/zero delta counts for:
+- exact generated-answer match rate;
+- token-set F1 (lexical overlap only);
+- teacher-forced gold-answer mean NLL.
+
+For NLL, a negative delta favors relevant memory; for exact-match accuracy and token F1, a positive delta favors relevant memory. These are separate diagnostics and should not be collapsed into one score. The intervals are exploratory and only generalize to this constructed set, not to real user memories.
+
+The new dataset and cluster-aware evaluator have unit tests for 32 clusters, two paraphrases per cluster, deterministic bootstrap behavior, and equal weighting of clusters rather than paraphrase counts. The expensive training workflow is now opt-in for pull-request activity and can be started manually; ordinary unit tests continue to run on branch pushes and pull requests. A full CPU training rerun is still required before reporting metrics for this expanded fixture.
+
