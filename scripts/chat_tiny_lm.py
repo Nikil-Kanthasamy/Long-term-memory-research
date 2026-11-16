@@ -41,6 +41,7 @@ def main():
     generated = model.generate(
         token_ids, max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
+        stop_sequence_ids=tokenizer.encode("\n"),
     )
     response = tokenizer.decode(generated[0, token_ids.size(1):].tolist())
     print(response.strip())
