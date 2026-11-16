@@ -48,6 +48,9 @@ def load_cases(path):
         memories = item.get("memories", [])
         if not isinstance(memories, list) or not all(isinstance(x, str) and x.strip() for x in memories):
             raise ValueError(f"line {number}: memories must be a list of non-empty strings")
+        distractors = item.get("irrelevant_memories", [])
+        if not isinstance(distractors, list) or not all(isinstance(x, str) and x.strip() for x in distractors):
+            raise ValueError(f"line {number}: irrelevant_memories must be a list of non-empty strings")
         cases.append(item)
     if not cases:
         raise ValueError("no evaluation cases found")
@@ -152,12 +155,14 @@ def main():
         for memory in case.get("memories", []):
             store.add_memory(user_id, memory, category="evaluation", importance=1.0, confidence=1.0)
         retrieved = store.search(user_id, case["question"], limit=5, mode="lexical")
-        distractor_memories = []
-        for offset in range(1, len(cases)):
-            candidate = cases[(index + offset) % len(cases)].get("memories", [])
-            if candidate and candidate != case.get("memories", []):
-                distractor_memories = [candidate[0]]
-                break
+        distractor_memories = case.get("irrelevant_memories", [])
+        distractor_source = "case_curated" if distractor_memories else "cross_case_fallback"
+        if not distractor_memories:
+            for offset in range(1, len(cases)):
+                candidate = cases[(index + offset) % len(cases)].get("memories", [])
+                if candidate and candidate != case.get("memories", []):
+                    distractor_memories = [candidate[0]]
+                    break
         prompts = build_condition_prompts(
             case["question"], retrieved, model.config.block_size, tokenizer,
             distractor_memories=distractor_memories,
@@ -183,6 +188,7 @@ def main():
             "expected_answer": case["expected_answer"],
             "retrieved_memory_count": len(retrieved),
             "retrieval_hit": retrieval_contains_expected(retrieved, case["expected_answer"]),
+            "irrelevant_memory_source": distractor_source if distractor_memories else None,
             "retrieval_only_evidence": {
                 "evidence": retrieval_only_evidence(retrieved),
                 "matched": retrieval_contains_expected(retrieved, case["expected_answer"]),
@@ -245,7 +251,7 @@ def main():
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
             "gold_answer_likelihood is teacher-forced token likelihood, not free-form answer accuracy or proof of semantic reasoning.",
-            "irrelevant_memory is a cross-case distractor control; its fact differs from the current case but may share topic or wording.",
+            "Curated irrelevant_memories are manually selected distractors intended to be topic-matched but answer-irrelevant; cross-case fallback distractors are not guaranteed semantically unrelated.",
         ],
     }
     output = Path(args.output)
