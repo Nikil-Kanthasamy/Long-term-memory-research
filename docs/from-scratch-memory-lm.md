@@ -277,3 +277,28 @@ The corrected run completed successfully, including both tokenizers and artifact
 For both tokenizers, the memory prompt lowered mean teacher-forced gold-answer NLL across the 16-case synthetic evaluation. This is consistent with retrieved context making the expected answer more probable to the model. It does **not** show that the model can produce the answer: free generation remained 0/16 in both conditions. Nor does the small synthetic evaluation establish statistical significance or generalization. Treat this as a preliminary signal of conditional context sensitivity, not successful long-term-memory QA.
 
 The run's unit tests, training, held-out evaluation, instruction tuning, memory comparisons, and artifact upload all completed successfully on CPU. The weights remained randomly initialized before WikiText-2 training; no pretrained checkpoint, hosted generation API, API key, or paid compute was used.
+
+
+## Irrelevant-memory control experiment (17 November 2026)
+
+The evaluator now compares three matched prompt conditions: no memory, retrieved relevant memory, and a cross-case irrelevant-memory distractor. The distractor is the first memory from another evaluation case whose memory list differs from the current case. This is a simple control, not a guarantee of semantic unrelatedness: distractors can share topics or wording with the target question.
+
+The full CPU workflow [43756805969](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43756805969) completed successfully on commit `8ed97bf314286943fa04675c9d15865071a7e5fd`. Both the full model workflow and unit-test workflow passed. The uploaded artifact is [14178473372](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43756805969/artifacts/14178473372), retained for 30 days.
+
+| Measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| No-memory mean gold-answer NLL | 3.8713 | 3.1531 |
+| Relevant-memory mean gold-answer NLL | 3.2912 | 2.6752 |
+| Irrelevant-memory mean gold-answer NLL | 3.9015 | 3.7115 |
+| Relevant minus no-memory NLL | -0.5801 | -0.4778 |
+| Irrelevant minus no-memory NLL | +0.0302 | +0.5584 |
+| Generated QA, no memory | 0/16 | 0/16 |
+| Generated QA, relevant memory | 0/16 | 0/16 |
+| Generated QA, irrelevant memory | 0/16 | 0/16 |
+| Gold answer present in retrieved evidence | 16/16 | 16/16 |
+
+The relevant-memory prompt lowers teacher-forced gold-answer NLL for both tokenizers, while the irrelevant-memory prompt slightly worsens it for the byte model and substantially worsens it for BPE. This pattern is consistent with the model responding to the *content relevance* of retrieved context rather than benefiting from arbitrary extra memory text. It is stronger evidence than the previous two-condition comparison, but remains preliminary: only 16 synthetic cases were used, the distractors are selected across cases rather than curated and semantically audited, and aggregate NLL alone does not establish robust memory reasoning.
+
+Free generation still scores 0/16 in every condition. Thus this experiment does **not** show a usable QA model or successful long-term-memory assistant. Retrieval exposes the gold answer in all 16 cases, but the model cannot generate it reliably. Keep this distinction explicit: retrieval supplies external context; it does not update model weights or prove that the model has learned persistent memories.
+
+The experiment used randomly initialized weights, CPU-only GitHub Actions, no hosted generation API, no API key, and no paid compute. The next experiment should improve the control design before making stronger claims: create manually checked, topic-matched but answer-irrelevant distractors, report per-question paired NLL deltas and uncertainty, and expand the held-out set. Do not increase model size or compute until the evaluation is more diagnostic.
