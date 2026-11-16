@@ -281,7 +281,7 @@ def main():
         "results": results,
         "limitations": [
             "Synthetic tiny evaluation set; not a benchmark of general assistant ability.",
-            "Generation exact-contains scoring uses literal normalized answer substrings; paraphrases may be marked wrong. Mean token-set F1 is also reported as a partial-overlap diagnostic, not semantic judging.",
+            "Generation exact-match scoring requires a complete contiguous sequence of normalized answer tokens; paraphrases may still be marked wrong. Mean token-set F1 is also reported as a partial-overlap diagnostic, not semantic judging.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
