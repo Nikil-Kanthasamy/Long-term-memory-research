@@ -99,7 +99,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         from src.ltm.tiny_lm import ByteTokenizer
         memory = "SQLite stores persistent memories."
         question = "Where are memories stored?"
-        prompt = f"M:{memory}\\nQ:{question}\\nA:"
+        prompt = f"M:{memory}\nQ:{question}\\nA:"
         inputs, labels = encode_example(prompt, "SQLite.", 128)
         decoded_prompt = ByteTokenizer.decode(inputs)
         self.assertIn(memory, decoded_prompt)
@@ -256,7 +256,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             self.assertNotIn(case["memories"][0].lower(), training_text)
         for row in generated:
             self.assertIn("M:", row["prompt"])
-            self.assertIn("\\nQ:", row["prompt"])
+            self.assertIn("\nQ:", row["prompt"])
             self.assertTrue(row["response"].strip())
 
 
