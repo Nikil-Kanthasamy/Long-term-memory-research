@@ -344,4 +344,28 @@ The earlier 16-question held-out set paraphrases facts that also occur in the SF
 
 The new set contains 16 questions over eight separate fact values (archive export format, sync interval, audit retention, backup region, embedding-cache dimensionality, conflict policy, memory identifier format, and retrieval similarity threshold). Each fact has two question phrasings and one manually selected distractor. The expected values and complete memory facts are checked to be absent from the SFT demonstration text. The workflow evaluates the same byte and BPE instruction-tuned checkpoints on both the original paraphrase set and this unseen-fact set, using no-memory, relevant-memory, and curated irrelevant-memory conditions.
 
-This is a diagnostic of memory-conditioned fact use on unseen values, not a broad benchmark. It is still synthetic, small, and created by the project author; exact substring scoring and lexical retrieval have known limitations. The full CPU run is in progress; results will be added here only after both tokenizers complete and artifacts are inspected. No model weights or training examples are changed by adding this evaluation set.
+This is a diagnostic of memory-conditioned fact use on unseen values, not a broad benchmark. It is still synthetic, small, and created by the project author; exact substring scoring and lexical retrieval have known limitations. ### Completed unseen-fact result (17 November 2026)
+
+The full CPU workflow [43943240352](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43943240352) completed successfully on branch `research/long-term-memory-starter`, commit `a79a8285d84bd1be955efe80e36f4142a704db8c`. All tests, byte and BPE training, held-out language-model evaluation, instruction tuning, both original and unseen-fact QA evaluations, and artifact upload passed. The 30-day artifact is [14264341714](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/43943240352/artifacts/14264341714); it includes checkpoints, logs, metrics, and per-case outputs.
+
+| Unseen-fact measurement | Byte tokenizer | Learned BPE |
+|---|---:|---:|
+| Held-out test cross-entropy (nats/byte) | 2.4382 | 2.1735 |
+| No-memory mean gold-answer NLL | 5.9945 | 7.4471 |
+| Relevant-memory mean gold-answer NLL | 6.1474 | 7.6646 |
+| Irrelevant-memory mean gold-answer NLL | 6.1376 | 7.7776 |
+| Relevant minus no-memory NLL | +0.1529 | +0.2174 |
+| Irrelevant minus no-memory NLL | +0.1431 | +0.3304 |
+| Generated QA, no memory | 0/16 | 0/16 |
+| Generated QA, relevant memory | 0/16 | 0/16 |
+| Generated QA, curated irrelevant memory | 0/16 | 0/16 |
+| Retrieved evidence contains gold answer | 16/16 | 16/16 |
+| Retrieval-only evidence contains gold answer | 16/16 | 16/16 |
+
+**The unseen-fact result does not show a memory benefit.** In contrast with the earlier paraphrase set (where relevant memory lowered teacher-forced NLL), adding the relevant memory slightly increased mean gold-answer NLL for both tokenizers. The irrelevant-memory control also increased NLL. Thus the model is not demonstrating that it can use retrieved context to make novel fact values more probable, much less generate them. All free-generation outputs failed exact normalized answer matching; inspection shows incoherent or unrelated continuations.
+
+Because the 16 questions are two paraphrases of each of only eight fact values, I also averaged the paired relevant-minus-no-memory NLL deltas within each fact, then bootstrapped the eight fact clusters (20,000 seeded percentile resamples). The mean cluster delta was +0.1529 nats for byte (3/8 facts improved, 5/8 worsened; exploratory 95% interval [-0.0108, +0.3003]) and +0.2174 for BPE (1/8 improved, 7/8 worsened; interval [+0.0156, +0.4294]). These intervals are descriptive only: eight synthetic fact clusters are far too few to support broad statistical claims. Resampling the 16 questions as if independent would overstate the effective sample size.
+
+The 16/16 retrieval score only says that lexical search exposed text containing the answer. The retrieval-only evidence baseline is not a generated answer and is not evidence of model reasoning. The earlier 16-case paraphrase benchmark and this unseen-fact benchmark answer different questions: the former showed a positive teacher-forced context-sensitivity signal; this latter test fails to reproduce it on facts excluded from SFT. This contrast is the main result and should not be averaged away.
+
+No training examples or model weights were changed to run this evaluation. The models were randomly initialized, trained on WikiText-2 using CPU GitHub Actions, and instruction-tuned on the same small synthetic SFT set; no pretrained weights, hosted generation API, API key, or paid compute were used. The next research step should improve the model's ability to condition on retrieved facts and expand the fact-clustered held-out evaluation before scaling model size or compute. Persistent memory remains external SQLite retrieval context, not weight-based continual learning.
