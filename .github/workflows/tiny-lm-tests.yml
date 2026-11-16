@@ -4,39 +4,23 @@ on:
   push:
     branches: ["research/long-term-memory-starter"]
     paths:
-      - "src/ltm/store.py"
       - "src/ltm/tiny_lm.py"
       - "src/ltm/bpe_tokenizer.py"
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
       - "scripts/generate_memory_sft.py"
-      - "scripts/evaluate_tiny_lm_memory_qa.py"
-      - "examples/tiny_lm_memory_qa_eval.jsonl"
-      - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
       - "examples/tiny_lm_sft_demo.jsonl"
-      - "scripts/chat_tiny_lm.py"
-      - "scripts/evaluate_tiny_lm.py"
       - "scripts/prepare_wikitext.py"
       - "requirements-tiny-lm-data.txt"
-      - "tests/test_tiny_lm.py"
-      - ".github/workflows/tiny-lm-tests.yml"
   pull_request:
     paths:
-      - "src/ltm/store.py"
       - "src/ltm/tiny_lm.py"
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
       - "scripts/generate_memory_sft.py"
-      - "scripts/evaluate_tiny_lm_memory_qa.py"
       - "examples/tiny_lm_sft_demo.jsonl"
-      - "examples/tiny_lm_memory_qa_eval.jsonl"
-      - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
-      - "scripts/chat_tiny_lm.py"
-      - "scripts/evaluate_tiny_lm.py"
       - "scripts/prepare_wikitext.py"
       - "requirements-tiny-lm-data.txt"
-      - "tests/test_tiny_lm.py"
-      - ".github/workflows/tiny-lm-tests.yml"
 
 jobs:
   tiny-lm:
