@@ -1,18 +1,9 @@
 name: tiny LM model tests
 
 on:
+  workflow_dispatch:
   push:
     branches: ["research/long-term-memory-starter"]
-    paths:
-      - "src/ltm/tiny_lm.py"
-      - "src/ltm/bpe_tokenizer.py"
-      - "scripts/train_tiny_lm.py"
-      - "scripts/train_tiny_lm_sft.py"
-      - "scripts/generate_memory_sft.py"
-      - "examples/tiny_lm_sft_demo.jsonl"
-      - "scripts/prepare_wikitext.py"
-      - "requirements-tiny-lm-data.txt"
-  pull_request:
     paths:
       - "src/ltm/tiny_lm.py"
       - "src/ltm/bpe_tokenizer.py"
