@@ -229,7 +229,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         from scripts.evaluate_tiny_lm_memory_qa import load_cases
         training = load_examples("examples/tiny_lm_sft_demo.jsonl")
         heldout = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
-        training_text = "\\n".join(row["prompt"] + " " + row["response"] for row in training).lower()
+        training_text = " ".join(row["prompt"] + " " + row["response"] for row in training).lower()
         self.assertEqual(len(heldout), 16)
         self.assertEqual(len({row["id"] for row in heldout}), 16)
         for row in heldout:
