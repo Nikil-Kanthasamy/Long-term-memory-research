@@ -41,7 +41,7 @@ def build_examples():
         for offset, template in enumerate(QUESTION_TEMPLATES):
             question = template.format(field=field)
             rows.append({
-                "prompt": f"M:{memory}\\nQ:{question}\\nA:",
+                "prompt": f"M:{memory}\nQ:{question}\nA:",
                 "response": value,
                 "id": f"grounding-{index:02d}-{offset:02d}",
             })
@@ -58,7 +58,7 @@ def main():
     rows = base + build_examples()
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in rows), encoding="utf-8")
+    output.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
     print(json.dumps({"base_examples": len(base), "generated_grounding_examples": len(rows) - len(base), "total_examples": len(rows), "output": str(output)}))
 
 
