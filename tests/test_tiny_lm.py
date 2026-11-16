@@ -336,8 +336,8 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["clusters"], 2)
         self.assertAlmostEqual(first["mean_delta"], 0.0)
-        self.assertEqual(first["clusters_improved"], 1)
-        self.assertEqual(first["clusters_worsened"], 1)
+        self.assertEqual(first["positive_delta_clusters"], 1)
+        self.assertEqual(first["negative_delta_clusters"], 1)
 
     def test_unseen_fact_clusters_have_two_paraphrases_each(self):
         from scripts.evaluate_tiny_lm_memory_qa import load_cases
