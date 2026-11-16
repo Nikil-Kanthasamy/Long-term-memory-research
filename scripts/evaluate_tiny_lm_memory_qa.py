@@ -41,12 +41,25 @@ def retrieval_only_evidence(retrieved):
     return "\n".join(item.get("content", "") for item in retrieved if item.get("content"))
 
 
-def retrieval_contains_expected(retrieved, expected_answer):
-    """Check whether retrieved evidence contains the normalized gold answer."""
-    expected = normalize(expected_answer)
-    if not expected:
+def contains_normalized_answer(text, expected_answer):
+    """Match a complete contiguous token sequence, not an arbitrary substring."""
+    observed_tokens = normalize(text).split()
+    expected_tokens = normalize(expected_answer).split()
+    if not expected_tokens or len(expected_tokens) > len(observed_tokens):
         return False
-    return any(expected in normalize(item.get("content", "")) for item in retrieved)
+    width = len(expected_tokens)
+    return any(
+        observed_tokens[index:index + width] == expected_tokens
+        for index in range(len(observed_tokens) - width + 1)
+    )
+
+
+def retrieval_contains_expected(retrieved, expected_answer):
+    """Check whether retrieved evidence contains the complete normalized answer."""
+    return any(
+        contains_normalized_answer(item.get("content", ""), expected_answer)
+        for item in retrieved
+    )
 
 
 def load_cases(path):
@@ -189,9 +202,7 @@ def main():
                 model, tokenizer, prompt, case["expected_answer"], device
             )
             answer = generate_answer(model, tokenizer, prompt, args.max_new_tokens, device)
-            expected = normalize(case["expected_answer"])
-            observed = normalize(answer)
-            matched = bool(expected) and expected in observed
+            matched = contains_normalized_answer(answer, case["expected_answer"])
             condition_results[condition] = {
                 "answer": answer,
                 "matched": matched,
