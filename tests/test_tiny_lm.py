@@ -232,6 +232,22 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertTrue(retrieval_contains_expected(retrieved, "SQLite database"))
         self.assertFalse(retrieval_contains_expected(retrieved, "PostgreSQL"))
         self.assertFalse(retrieval_contains_expected(retrieved, ""))
+        self.assertFalse(retrieval_contains_expected(
+            [{"content": "The configured interval is 145 minutes."}], "45 minutes"
+        ))
+
+
+    def test_answer_matching_requires_complete_token_boundaries(self):
+        from scripts.evaluate_tiny_lm_memory_qa import contains_normalized_answer
+        self.assertTrue(contains_normalized_answer(
+            "Answer: 45 minutes.", "45 minutes"
+        ))
+        self.assertTrue(contains_normalized_answer(
+            "The format is newline-delimited JSON.", "newline-delimited JSON"
+        ))
+        self.assertFalse(contains_normalized_answer("145 minutes", "45 minutes"))
+        self.assertFalse(contains_normalized_answer("SQLite3", "SQLite"))
+        self.assertFalse(contains_normalized_answer("The answer is absent.", ""))
 
     def test_expanded_instruction_and_heldout_sets_are_distinct(self):
         from scripts.train_tiny_lm_sft import load_examples
