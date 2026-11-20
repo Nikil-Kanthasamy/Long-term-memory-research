@@ -355,6 +355,37 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
                         replicates=invalid,
                     )
 
+    def test_memory_qa_loader_rejects_invalid_case_metadata(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+
+        invalid_cases = [
+            ({"question": " ", "expected_answer": "A"}, "question must be a non-empty string"),
+            ({"question": "Q", "expected_answer": ""}, "expected_answer must be a non-empty string"),
+            ({"question": "Q", "expected_answer": "A", "id": ""}, "id must be a non-empty string"),
+            ({"question": "Q", "expected_answer": "A", "fact_cluster_id": ""}, "fact_cluster_id must be a non-empty string"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cases.jsonl"
+            for case, message in invalid_cases:
+                with self.subTest(case=case):
+                    path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, message):
+                        load_cases(path)
+
+            duplicate_cases = [
+                {"id": "same", "question": "Q1", "expected_answer": "A1"},
+                {"id": "same", "question": "Q2", "expected_answer": "A2"},
+            ]
+            path.write_text(
+                "\\n".join(json.dumps(case) for case in duplicate_cases) + "\\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate evaluation case id"):
+                load_cases(path)
+
     def test_unseen_fact_clusters_have_two_paraphrases_each(self):
         from scripts.evaluate_tiny_lm_memory_qa import load_cases
         cases = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
