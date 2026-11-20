@@ -339,6 +339,22 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         self.assertEqual(first["positive_delta_clusters"], 1)
         self.assertEqual(first["negative_delta_clusters"], 1)
 
+    def test_fact_cluster_bootstrap_rejects_invalid_replicate_counts(self):
+        from scripts.evaluate_tiny_lm_memory_qa import cluster_bootstrap_delta
+        rows = [{
+            "case_id": "a",
+            "fact_cluster_id": "A",
+            "memory": {"score": 1.0},
+            "no_memory": {"score": 0.0},
+        }]
+        for invalid in (0, -1, True, 1.5):
+            with self.subTest(replicates=invalid):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    cluster_bootstrap_delta(
+                        rows, "memory", "no_memory", "score",
+                        replicates=invalid,
+                    )
+
     def test_unseen_fact_clusters_have_two_paraphrases_each(self):
         from scripts.evaluate_tiny_lm_memory_qa import load_cases
         cases = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
