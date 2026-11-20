@@ -184,11 +184,11 @@ def main():
     output_checkpoint.parent.mkdir(parents=True, exist_ok=True)
     torch.save(payload, output_checkpoint)
     print(f"Saved span-supervised checkpoint to {output_checkpoint}")
-    if args.eval_cases:
-        cases = load_jsonl(args.eval_cases)
-        metrics = evaluate(model, cases, device, model.config.block_size)
-        Path(args.output).write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps({key: value for key, value in metrics.items() if key != "per_case"}, indent=2))
+    if eval_cases:
+        trained_metrics = evaluate(model, eval_cases, device, model.config.block_size)
+        report = {"baseline_before_supervision": baseline_metrics, "after_span_supervision": trained_metrics}
+        Path(args.output).write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+        print("After span supervision: " + json.dumps({key: value for key, value in trained_metrics.items() if key != "per_case"}, indent=2))
 
 
 if __name__ == "__main__":
