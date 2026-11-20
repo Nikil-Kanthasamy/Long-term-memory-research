@@ -86,6 +86,7 @@ jobs:
           python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-copy-unseen-qa-eval.sqlite3 --output copy-unseen-memory-qa-evaluation.json --max-new-tokens 32
       - name: Supervise answer-span selection in retrieved memory
         run: |
+          set -o pipefail
           python scripts/train_tiny_lm_span_copy.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --output-checkpoint models/tiny-memory-lm-copy/span-copy.pt --eval-cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --output copy-span-unseen-evaluation.json --steps 600 --batch-size 4 --device cpu | tee copy-span-training.log
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4

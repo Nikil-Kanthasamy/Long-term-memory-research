@@ -6,7 +6,7 @@ except ImportError:
     torch = None
 
 if torch is not None:
-    from scripts.train_tiny_lm_span_copy import locate_answer_span, score_answer_span
+    from scripts.train_tiny_lm_span_copy import locate_answer_span, prepare_training_examples, score_answer_span
     from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
 
 
@@ -43,6 +43,19 @@ class TinyLMSpanCopyTests(unittest.TestCase):
     def test_missing_answer_span_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "not present"):
             locate_answer_span("M:export=CBOR\nQ:format?\nA:", "JSON")
+
+    def test_training_preparation_skips_paraphrases_without_spans(self):
+        rows = [
+            {"prompt": "M:The export format is CBOR.\\nQ:format?\\nA:", "response": "CBOR"},
+            {"prompt": "M:The export format is CBOR.\\nQ:format?\\nA:", "response": "It uses CBOR."},
+        ]
+        prepared, skipped_missing, skipped_long = prepare_training_examples(
+            rows, block_size=64
+        )
+        self.assertEqual(len(prepared), 1)
+        self.assertEqual(skipped_missing, 1)
+        self.assertEqual(skipped_long, 0)
+
 
 
 if __name__ == "__main__":

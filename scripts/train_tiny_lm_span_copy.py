@@ -81,6 +81,29 @@ def load_jsonl(path):
     return rows
 
 
+
+def prepare_training_examples(rows, block_size, tokenizer=None):
+    """Keep only examples whose target is an extractive span in the memory."""
+    tokenizer = tokenizer or ByteTokenizer()
+    prepared = []
+    skipped_missing = 0
+    skipped_long = 0
+    for row in rows:
+        try:
+            ids, start, end, query_position, _ = locate_answer_span(
+                row["prompt"], row["response"].rstrip(), tokenizer
+            )
+        except ValueError as error:
+            if "answer span is not present" not in str(error):
+                raise
+            skipped_missing += 1
+            continue
+        if len(ids) > block_size:
+            skipped_long += 1
+            continue
+        prepared.append((ids, start, end, query_position))
+    return prepared, skipped_missing, skipped_long
+
 def evaluate(model, cases, device, block_size):
     tokenizer = ByteTokenizer()
     results = []
@@ -141,16 +164,16 @@ def main():
         parser.error("checkpoint must have the causal copy mechanism enabled")
     tokenizer = ByteTokenizer()
     rows = load_jsonl(args.input)
-    prepared = []
-    for row in rows:
-        ids, start, end, query_position, memory_end = locate_answer_span(
-            row["prompt"], row["response"].rstrip()
-        )
-        if len(ids) > model.config.block_size:
-            continue
-        prepared.append((ids, start, end, query_position))
+    prepared, skipped_missing, skipped_long = prepare_training_examples(
+        rows, model.config.block_size, tokenizer
+    )
+    print(
+        f"Prepared {len(prepared)} span examples; skipped "
+        f"{skipped_missing} paraphrased answers not verbatim in memory and "
+        f"{skipped_long} examples over the context limit."
+    )
     if not prepared:
-        parser.error("no training examples fit the model context")
+        parser.error("no training examples contain extractable answer spans within the model context")
     eval_cases = load_jsonl(args.eval_cases) if args.eval_cases else None
     baseline_metrics = evaluate(model, eval_cases, device, model.config.block_size) if eval_cases else None
     if baseline_metrics:
