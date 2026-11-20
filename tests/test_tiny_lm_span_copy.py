@@ -1,11 +1,16 @@
 import unittest
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 
-from scripts.train_tiny_lm_span_copy import locate_answer_span, score_answer_span
-from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+if torch is not None:
+    from scripts.train_tiny_lm_span_copy import locate_answer_span, score_answer_span
+    from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
 
 
+@unittest.skipIf(torch is None, "optional PyTorch dependency is not installed")
 class TinyLMSpanCopyTests(unittest.TestCase):
     def test_forward_can_return_causal_copy_attention(self):
         torch.manual_seed(3)
