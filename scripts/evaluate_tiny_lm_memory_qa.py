@@ -112,12 +112,31 @@ def retrieval_contains_expected(retrieved, expected_answer):
 
 def load_cases(path):
     cases = []
+    seen_case_ids = set()
     for number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         item = json.loads(line)
-        if not isinstance(item.get("question"), str) or not isinstance(item.get("expected_answer"), str):
-            raise ValueError(f"line {number}: question and expected_answer must be strings")
+        if not isinstance(item, dict):
+            raise ValueError(f"line {number}: each evaluation case must be a JSON object")
+        question = item.get("question")
+        expected_answer = item.get("expected_answer")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError(f"line {number}: question must be a non-empty string")
+        if not isinstance(expected_answer, str) or not expected_answer.strip():
+            raise ValueError(f"line {number}: expected_answer must be a non-empty string")
+        case_id = item.get("id")
+        if case_id is not None:
+            if not isinstance(case_id, str) or not case_id.strip():
+                raise ValueError(f"line {number}: id must be a non-empty string when provided")
+            if case_id in seen_case_ids:
+                raise ValueError(f"line {number}: duplicate evaluation case id {case_id!r}")
+            seen_case_ids.add(case_id)
+        cluster_id = item.get("fact_cluster_id")
+        if cluster_id is not None and (
+            not isinstance(cluster_id, str) or not cluster_id.strip()
+        ):
+            raise ValueError(f"line {number}: fact_cluster_id must be a non-empty string when provided")
         memories = item.get("memories", [])
         if not isinstance(memories, list) or not all(isinstance(x, str) and x.strip() for x in memories):
             raise ValueError(f"line {number}: memories must be a list of non-empty strings")
