@@ -1,5 +1,10 @@
 name: tiny LM model tests
 
+# Avoid burning duplicate CPU time when several commits land close together.
+concurrency:
+  group: tiny-lm-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   push:
