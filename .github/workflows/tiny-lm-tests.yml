@@ -10,6 +10,8 @@ on:
       - "scripts/train_tiny_lm.py"
       - "scripts/train_tiny_lm_sft.py"
       - "scripts/generate_memory_sft.py"
+      - "scripts/evaluate_tiny_lm_memory_qa.py"
+      - "tests/test_tiny_lm.py"
       - "examples/tiny_lm_sft_demo.jsonl"
       - "scripts/prepare_wikitext.py"
       - "requirements-tiny-lm-data.txt"
