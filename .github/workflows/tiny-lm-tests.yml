@@ -25,7 +25,7 @@ on:
 jobs:
   tiny-lm:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -73,6 +73,15 @@ jobs:
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-bpe-qa-eval.sqlite3 --output bpe-memory-qa-evaluation.json --max-new-tokens 32
       - name: Evaluate BPE model on unseen memory facts
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-bpe-unseen-qa-eval.sqlite3 --output bpe-unseen-memory-qa-evaluation.json --max-new-tokens 32
+      - name: Train byte model with causal pointer copy head
+        run: |
+          python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm-copy --steps 1000 --batch-size 8 --block-size 128 --d-model 128 --layers 2 --heads 4 --copy-mechanism --eval-interval 100 --device cpu | tee copy-training.log
+      - name: Instruction-tune pointer copy model
+        run: python scripts/train_tiny_lm_sft.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --output models/tiny-memory-lm-copy/instruct.pt --steps 2000 --batch-size 4 --device cpu | tee copy-instruction-tuning.log
+      - name: Evaluate pointer copy model on familiar and unseen facts
+        run: |
+          python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-copy-qa-eval.sqlite3 --output copy-memory-qa-evaluation.json --max-new-tokens 32
+          python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-copy-unseen-qa-eval.sqlite3 --output copy-unseen-memory-qa-evaluation.json --max-new-tokens 32
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
@@ -92,4 +101,9 @@ jobs:
             bpe-memory-qa-evaluation.json
             unseen-memory-qa-evaluation.json
             bpe-unseen-memory-qa-evaluation.json
+            models/tiny-memory-lm-copy/*.pt
+            copy-training.log
+            copy-instruction-tuning.log
+            copy-memory-qa-evaluation.json
+            copy-unseen-memory-qa-evaluation.json
           retention-days: 30

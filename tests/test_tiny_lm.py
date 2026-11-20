@@ -82,6 +82,45 @@ class TinyLanguageModelTests(unittest.TestCase):
         generated = model.generate(inputs[:1, :4], max_new_tokens=3, temperature=1.0, top_k=10)
         self.assertEqual(tuple(generated.shape), (1, 7))
 
+    def test_causal_copy_head_produces_normalized_distribution_and_gradients(self):
+        import torch
+        from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+
+        torch.manual_seed(23)
+        model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=16, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0, copy_enabled=True,
+        ))
+        inputs = torch.tensor([[ord("M"), ord(":"), ord("A"), ord("B"), ord("Q")]])
+        targets = torch.tensor([[ord(":"), ord("A"), ord("B"), ord("Q"), ord("A")]])
+        logits, loss = model(inputs, targets)
+        probabilities = torch.softmax(logits, dim=-1)
+        self.assertTrue(torch.isfinite(loss).item())
+        self.assertTrue(torch.allclose(
+            probabilities.sum(dim=-1),
+            torch.ones_like(probabilities[..., 0]),
+            atol=1e-5,
+        ))
+        loss.backward()
+        self.assertIsNotNone(model.copy_query.weight.grad)
+        self.assertIsNotNone(model.copy_gate.weight.grad)
+        self.assertGreater(float(model.copy_query.weight.grad.abs().sum()), 0.0)
+
+    def test_copy_head_is_opt_in_and_checkpoint_config_round_trips(self):
+        from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+        baseline = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=16, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0,
+        ))
+        self.assertFalse(hasattr(baseline, "copy_query"))
+        copy_model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=16, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0, copy_enabled=True,
+        ))
+        restored = TinyLanguageModel.from_checkpoint(copy_model.checkpoint())
+        self.assertTrue(restored.config.copy_enabled)
+        self.assertTrue(hasattr(restored, "copy_query"))
+
     def test_generation_accepts_multi_token_stop_sequence(self):
         import torch
         from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig

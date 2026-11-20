@@ -41,6 +41,8 @@ def main():
     parser.add_argument("--tokenizer", choices=["byte", "bpe"], default="byte")
     parser.add_argument("--vocab-size", type=int, default=512,
                         help="Target BPE vocabulary size; base byte IDs are always retained")
+    parser.add_argument("--copy-mechanism", action="store_true",
+                        help="Enable a causal pointer distribution over prior input tokens")
     args = parser.parse_args()
 
     if args.steps < 1 or args.batch_size < 1 or args.block_size < 8:
@@ -76,7 +78,8 @@ def main():
     validation_sha256 = hashlib.sha256(validation_raw).hexdigest()
 
     config = TinyLMConfig(vocab_size=tokenizer.vocab_size, block_size=args.block_size,
-                          d_model=args.d_model, n_heads=args.heads, n_layers=args.layers)
+                          d_model=args.d_model, n_heads=args.heads, n_layers=args.layers,
+                          copy_enabled=args.copy_mechanism)
     model = TinyLanguageModel(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     output_dir = Path(args.output_dir)

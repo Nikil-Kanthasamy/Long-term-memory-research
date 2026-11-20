@@ -19,6 +19,7 @@ class TinyLMConfig:
     n_heads: int = 4
     n_layers: int = 4
     dropout: float = 0.1
+    copy_enabled: bool = False
 
 
 class ByteTokenizer:
@@ -88,6 +89,12 @@ class TinyLanguageModel(nn.Module):
         self.final_norm = nn.LayerNorm(c.d_model)
         self.output = nn.Linear(c.d_model, c.vocab_size, bias=False)
         self.output.weight = self.token_embedding.weight
+        if c.copy_enabled:
+            # Pointer head: query each prediction position against token embeddings
+            # already present in its causal context, then scatter attention mass
+            # onto the corresponding vocabulary IDs.
+            self.copy_query = nn.Linear(c.d_model, c.d_model, bias=False)
+            self.copy_gate = nn.Linear(c.d_model, 1)
         self.apply(self._init_weights)
 
     @staticmethod
@@ -109,7 +116,24 @@ class TinyLanguageModel(nn.Module):
             diagonal=1,
         )
         hidden = self.blocks(hidden, mask=causal_mask)
-        logits = self.output(self.final_norm(hidden))
+        normalized_hidden = self.final_norm(hidden)
+        logits = self.output(normalized_hidden)
+        if self.config.copy_enabled:
+            keys = self.token_embedding(input_ids)
+            queries = self.copy_query(normalized_hidden)
+            copy_scores = torch.matmul(queries, keys.transpose(1, 2))
+            copy_scores = copy_scores / (self.config.d_model ** 0.5)
+            copy_scores = copy_scores.masked_fill(causal_mask.unsqueeze(0), float("-inf"))
+            copy_attention = F.softmax(copy_scores, dim=-1)
+            copy_probs = torch.zeros_like(logits).scatter_add(
+                dim=-1,
+                index=input_ids.unsqueeze(1).expand(-1, length, -1),
+                src=copy_attention,
+            )
+            generation_gate = torch.sigmoid(self.copy_gate(normalized_hidden))
+            vocab_probs = F.softmax(logits, dim=-1)
+            mixed_probs = generation_gate * vocab_probs + (1.0 - generation_gate) * copy_probs
+            logits = torch.log(mixed_probs.clamp_min(1e-9))
         loss = None
         if targets is not None:
             loss = F.cross_entropy(
