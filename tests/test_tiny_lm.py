@@ -118,7 +118,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         from src.ltm.tiny_lm import ByteTokenizer
         memory = "SQLite stores persistent memories."
         question = "Where are memories stored?"
-        prompt = f"M:{memory}\nQ:{question}\\nA:"
+        prompt = f"M:{memory}\nQ:{question}\nA:"
         inputs, labels = encode_example(prompt, "SQLite.", 128)
         decoded_prompt = ByteTokenizer.decode(inputs)
         self.assertIn(memory, decoded_prompt)
@@ -371,7 +371,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             path = Path(directory) / "cases.jsonl"
             for case, message in invalid_cases:
                 with self.subTest(case=case):
-                    path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+                    path.write_text(json.dumps(case) + "\n", encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, message):
                         load_cases(path)
 
@@ -380,7 +380,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
                 {"id": "same", "question": "Q2", "expected_answer": "A2"},
             ]
             path.write_text(
-                "\\n".join(json.dumps(case) for case in duplicate_cases) + "\\n",
+                "\n".join(json.dumps(case) for case in duplicate_cases) + "\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "duplicate evaluation case id"):
