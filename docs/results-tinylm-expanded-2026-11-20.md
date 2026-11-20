@@ -87,3 +87,49 @@ The small familiar-set BPE result does not generalize to the expanded unseen-fac
 ## Artifact contents
 
 The workflow artifact includes byte and BPE checkpoints (best, final, and instruction-tuned), training logs, held-out language-model metrics, familiar and unseen memory-QA reports, and a memory-chat smoke-test output.
+
+
+---
+
+## Follow-up experiment: expanded 288-example grounding curriculum
+
+- Source commit: `438ed567c85126604c1a7cab102800cf80a5293c`
+- Full CPU workflow: [run #115](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/44663920889)
+- General unit tests: [run #317](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/44663920908)
+- Both workflows completed successfully.
+- Artifact: `tiny-memory-lm-wikitext2-pilot-44663920889`
+- The generated curriculum contains 288 examples (16 facts × 3 memory phrasings × 6 question phrasings). The SFT checkpoint metadata reports **336 total training examples**, including the 48 examples in the base demo set.
+- Both models used 2,000 SFT steps. The byte model's base checkpoint was step 900; BPE's was step 1,000.
+
+### Held-out unseen-fact results after the expanded curriculum
+
+| Model | No-memory exact | Relevant-memory exact | Irrelevant-memory exact | Relevant-memory mean token F1 | Retrieval evidence contains answer |
+|---|---:|---:|---:|---:|---:|
+| Byte | 0/64 | 0/64 | 0/64 | 0.0313 | 59/64 (92.2%) |
+| BPE | 0/64 | 0/64 | 0/64 | 0.0383 | 59/64 (92.2%) |
+
+The byte model's relevant-memory token-F1 gain over no memory was 0.0313, with a cluster-bootstrap 95% interval of [0.0000, 0.0875]. BPE's gain was 0.0260, with interval [-0.0045, 0.0662]. Neither model improved exact-match accuracy: every one of the 32 fact clusters had zero exact-match delta for both models.
+
+### Teacher-forced gold-answer likelihood
+
+| Model | No-memory mean NLL | Relevant-memory mean NLL | Relevant minus no-memory | Cluster-bootstrap 95% interval |
+|---|---:|---:|---:|---:|
+| Byte | 4.5190 | 4.1772 | -0.3419 | [-0.5293, -0.1700] |
+| BPE | 5.4597 | 5.2516 | -0.2081 | [-0.3681, -0.0415] |
+
+The likelihood improvement is statistically separated from zero under this exploratory cluster bootstrap for both tokenizers. It still does not translate into correct generated answers. This distinction is central: the model assigns somewhat higher probability to the correct continuation when relevant evidence is present, but its greedy generation does not reproduce the answer.
+
+### Familiar-set regression check
+
+| Model | Relevant-memory exact | Relevant-memory mean token F1 |
+|---|---:|---:|
+| Byte | 0/16 | 0.0000 |
+| BPE | 0/16 | 0.1047 |
+
+Retrieval evidence contained the expected answer in all 16 cases for both tokenizers. The earlier BPE familiar-set exact answers did not reproduce in this follow-up run.
+
+### Conclusion and next experiment
+
+The larger and more varied synthetic curriculum improved teacher-forced answer likelihood on the unseen benchmark, but did **not** improve exact generated-answer accuracy. The model is still not a reliable memory QA assistant. The evidence points to an answer-copying/decoding bottleneck rather than simply too few prompt phrasings.
+
+The next experiment should test an explicit copy mechanism or pointer-style output distribution over retrieved context, with a controlled copy benchmark and untouched held-out facts. Keep the current benchmark as a regression test; do not claim weight-based persistent memory from retrieval-context results. No paid compute or external generation API was used.
