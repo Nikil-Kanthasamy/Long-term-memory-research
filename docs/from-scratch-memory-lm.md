@@ -66,7 +66,7 @@ The evaluator reports next-byte cross-entropy and byte-level perplexity. These a
 
 ## Supervised instruction tuning
 
-The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. The synthetic demonstration set is for pipeline development, not a substitute for a licensed, diverse conversational corpus. The expanded set now contains 48 prompt/response examples across eight project facts and six prompt styles per fact; it remains deliberately small.
+The base model is only a next-byte predictor. The optional second stage trains on JSONL prompt/response examples and masks the prompt bytes from the loss, so the model is optimized to produce responses rather than copy prompts. The synthetic demonstration set is for pipeline development, not a substitute for a licensed, diverse conversational corpus. The starter demonstration set contains 48 prompt/response examples. A separate deterministic grounding-curriculum generator creates 288 examples from 16 synthetic facts using three memory phrasings and six question phrasings per fact. The generated fact values are checked to remain disjoint from the held-out unseen-fact evaluation set.
 
 ```bash
 python scripts/train_tiny_lm_sft.py \
@@ -109,7 +109,7 @@ Workflow: [run 43749385240](https://github.com/Nikil-Kanthasamy/Long-term-memory
 
 The memory retriever returned one candidate in each of the six test cases, and the evidence check confirmed that the gold answer text was present in retrieved evidence in all six cases (6/6). Yet neither memory-assisted nor no-memory generation produced an exact expected answer (0/6 in each condition). This isolates the current bottleneck in this tiny controlled set: lexical retrieval found the supplied facts, while the randomly initialized language model could not turn those facts into answers. The chat smoke-test output was also incoherent. Therefore this pilot validates that training, checkpointing, retrieval insertion, and evaluation execute end-to-end; it does **not** validate a useful conversational model or a measurable memory benefit.
 
-The very low instruction-tuning loss alongside zero QA accuracy is a warning that the earlier eight-example demonstration set was being memorized or otherwise overfit, not that the model had learned general instruction following. The next controlled experiment expands training to 48 prompt/response examples over eight facts and evaluates on 16 separately phrased questions. This is still synthetic and small; the result must be judged by held-out answers, not training loss. The evidence-retrieval score is reported separately from generation quality.
+The very low instruction-tuning loss alongside zero QA accuracy is a warning that the earlier eight-example demonstration set was being memorized or otherwise overfit, not that the model had learned general instruction following. The next controlled experiment uses the 288-example generated grounding curriculum (16 synthetic facts × three memory phrasings × six question phrasings) alongside the 48-example demonstration set, while evaluating on fact values held out from both sources. This remains synthetic; the result must be judged by held-out free-generation answers, not training loss. The evidence-retrieval score is reported separately from generation quality.
 
 ## Chat with retrieved long-term memory
 

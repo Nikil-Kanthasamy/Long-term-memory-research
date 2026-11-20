@@ -281,9 +281,12 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         from scripts.train_tiny_lm_sft import load_examples
         from scripts.evaluate_tiny_lm_memory_qa import load_cases
         generated = build_examples()
-        self.assertEqual(len(generated), 64)
-        self.assertEqual(len({row["id"] for row in generated}), 64)
+        self.assertEqual(len(generated), 288)
+        self.assertEqual(len({row["id"] for row in generated}), 288)
         self.assertEqual(generated, build_examples())
+        self.assertEqual(len({row["prompt"] for row in generated}), 288)
+        self.assertEqual(len({row["response"] for row in generated}), 16)
+        self.assertEqual(len({row["prompt"].splitlines()[0] for row in generated}), 48)
         training = load_examples("examples/tiny_lm_sft_demo.jsonl")
         heldout = load_cases("examples/tiny_lm_memory_qa_unseen_facts.jsonl")
         training_text = " ".join(
