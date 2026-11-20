@@ -61,6 +61,8 @@ def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=
     happens over clusters, not paraphrase rows, so paraphrases are not treated
     as independent facts.
     """
+    if isinstance(replicates, bool) or not isinstance(replicates, int) or replicates < 1:
+        raise ValueError("replicates must be a positive integer")
     grouped = {}
     for row in results:
         cluster_id = row.get("fact_cluster_id") or row["case_id"]
