@@ -151,6 +151,10 @@ def main():
         prepared.append((ids, start, end, query_position))
     if not prepared:
         parser.error("no training examples fit the model context")
+    eval_cases = load_jsonl(args.eval_cases) if args.eval_cases else None
+    baseline_metrics = evaluate(model, eval_cases, device, model.config.block_size) if eval_cases else None
+    if baseline_metrics:
+        print("Before span supervision: " + json.dumps({key: value for key, value in baseline_metrics.items() if key != "per_case"}))
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     model.train()
     for step in range(1, args.steps + 1):
