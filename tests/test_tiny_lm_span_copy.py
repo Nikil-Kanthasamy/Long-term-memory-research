@@ -13,7 +13,7 @@ class TinyLMSpanCopyTests(unittest.TestCase):
             vocab_size=256, block_size=64, d_model=16,
             n_heads=4, n_layers=1, dropout=0.0, copy_enabled=True,
         ))
-        ids = torch.tensor([[ord(c) for c in "M:CBOR\\nQ:format?\\nA:"]])
+        ids = torch.tensor([[ord(c) for c in "M:CBOR\nQ:format?\nA:"]])
         _, _, attention = model(ids, return_copy_attention=True)
         self.assertEqual(tuple(attention.shape), (1, ids.shape[1], ids.shape[1]))
         self.assertTrue(torch.allclose(attention.sum(-1), torch.ones(1, ids.shape[1]), atol=1e-6))
@@ -21,7 +21,7 @@ class TinyLMSpanCopyTests(unittest.TestCase):
 
     def test_answer_span_offsets_and_memory_boundary(self):
         ids, start, end, query, memory_end = locate_answer_span(
-            "M:The export format is CBOR.\\nQ:Which format?\\nA:", "CBOR"
+            "M:The export format is CBOR.\nQ:Which format?\nA:", "CBOR"
         )
         self.assertEqual(bytes(ids[start:end]).decode(), "CBOR")
         self.assertLess(end, memory_end)
@@ -37,7 +37,7 @@ class TinyLMSpanCopyTests(unittest.TestCase):
 
     def test_missing_answer_span_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "not present"):
-            locate_answer_span("M:export=CBOR\\nQ:format?\\nA:", "JSON")
+            locate_answer_span("M:export=CBOR\nQ:format?\nA:", "JSON")
 
 
 if __name__ == "__main__":

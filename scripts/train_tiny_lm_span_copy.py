@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel
 
 
-PROMPT_RE = re.compile(r"M:(.*?)\\nQ:(.*?)\\nA:", re.DOTALL)
+PROMPT_RE = re.compile(r"M:(.*?)\nQ:(.*?)\nA:", re.DOTALL)
 
 
 def locate_answer_span(prompt, answer, tokenizer=None):
@@ -37,7 +37,7 @@ def locate_answer_span(prompt, answer, tokenizer=None):
     start_in_memory = bytes(memory_bytes).find(bytes(answer_bytes))
     if start_in_memory < 0:
         raise ValueError("answer span is not present in the retrieved memory")
-    prompt_ids = tokenizer.encode(f"M:{memory}\\nQ:{question}\\nA:")
+    prompt_ids = tokenizer.encode(f"M:{memory}\nQ:{question}\nA:")
     start = 2 + start_in_memory
     end = start + len(answer_bytes)
     if end > len(prompt_ids):
@@ -90,7 +90,7 @@ def evaluate(model, cases, device, block_size):
             memories = case.get("memories") or []
             if not memories:
                 raise ValueError("each evaluation case needs at least one memory")
-            prompt = f"M:{memories[0]}\\nQ:{case['question']}\\nA:"
+            prompt = f"M:{memories[0]}\nQ:{case['question']}\nA:"
             ids, start, end, query_position, memory_end = locate_answer_span(
                 prompt, case["expected_answer"], tokenizer
             )
@@ -183,7 +183,7 @@ def main():
     if args.eval_cases:
         cases = load_jsonl(args.eval_cases)
         metrics = evaluate(model, cases, device, model.config.block_size)
-        Path(args.output).write_text(json.dumps(metrics, indent=2) + "\\n", encoding="utf-8")
+        Path(args.output).write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({key: value for key, value in metrics.items() if key != "per_case"}, indent=2))
 
 
