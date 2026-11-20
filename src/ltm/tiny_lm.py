@@ -104,7 +104,7 @@ class TinyLanguageModel(nn.Module):
             if isinstance(module, nn.Linear) and module.bias is not None:
                 nn.init.zeros_(module.bias)
 
-    def forward(self, input_ids, targets=None):
+    def forward(self, input_ids, targets=None, return_copy_attention=False):
         batch, length = input_ids.shape
         if length > self.config.block_size:
             raise ValueError("input exceeds configured block_size")
@@ -134,12 +134,18 @@ class TinyLanguageModel(nn.Module):
             vocab_probs = F.softmax(logits, dim=-1)
             mixed_probs = generation_gate * vocab_probs + (1.0 - generation_gate) * copy_probs
             logits = torch.log(mixed_probs.clamp_min(1e-9))
+        else:
+            copy_attention = None
+        if return_copy_attention and not self.config.copy_enabled:
+            raise ValueError("copy attention requires copy_enabled=True")
         loss = None
         if targets is not None:
             loss = F.cross_entropy(
                 logits.reshape(batch * length, self.config.vocab_size),
                 targets.reshape(batch * length),
             )
+        if return_copy_attention:
+            return logits, loss, copy_attention
         return logits, loss
 
     @torch.no_grad()
