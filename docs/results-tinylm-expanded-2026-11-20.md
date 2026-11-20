@@ -133,3 +133,39 @@ Retrieval evidence contained the expected answer in all 16 cases for both tokeni
 The larger and more varied synthetic curriculum improved teacher-forced answer likelihood on the unseen benchmark, but did **not** improve exact generated-answer accuracy. The model is still not a reliable memory QA assistant. The evidence points to an answer-copying/decoding bottleneck rather than simply too few prompt phrasings.
 
 The next experiment should test an explicit copy mechanism or pointer-style output distribution over retrieved context, with a controlled copy benchmark and untouched held-out facts. Keep the current benchmark as a regression test; do not claim weight-based persistent memory from retrieval-context results. No paid compute or external generation API was used.
+
+
+---
+
+## Follow-up experiment: causal pointer-copy head
+
+- Source commit: `049284d5618ae0292dbb68cd31b64d6d5d251e8f`
+- Full CPU workflow: [run #116](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/44666049942)
+- General tests and every step of the full model workflow completed successfully.
+- Artifact: `tiny-memory-lm-wikitext2-pilot-44666049942`
+- The copy-enabled byte model was randomly initialized and trained on the same WikiText-2 pipeline (1,000 pretraining steps), then instruction-tuned for 2,000 steps on the 336-example grounding set. It has 462,465 parameters.
+- The optional causal pointer-copy head combines the vocabulary distribution with a learned attention distribution over tokens already in the input context. The baseline byte and BPE models remain unchanged.
+
+### Results
+
+| Evaluation | No-memory exact | Relevant-memory exact | Irrelevant-memory exact | Relevant-memory mean token F1 | Retrieval evidence contains answer |
+|---|---:|---:|---:|---:|---:|
+| Familiar (16 questions) | 0/16 | 0/16 | 0/16 | 0.0000 | 16/16 (100%) |
+| Unseen (64 questions) | 0/64 | 0/64 | 0/64 | 0.0266 | 59/64 (92.2%) |
+
+The unseen relevant-memory token-F1 delta over no memory was +0.0266 (cluster-bootstrap 95% interval [0.0000, 0.0594]). The corresponding baseline byte model from the preceding run had +0.0313 relevant-memory token F1. Neither model produced a single exact answer on the unseen set; the copy head did not improve free-generation accuracy.
+
+### Teacher-forced answer likelihood
+
+| Evaluation | No-memory mean NLL | Relevant-memory mean NLL | Relevant minus no-memory | Cluster-bootstrap 95% interval |
+|---|---:|---:|---:|---:|
+| Familiar (16 questions) | 3.2065 | 2.4586 | -0.7478 | [-1.1353, -0.4282] |
+| Unseen (64 questions) | 4.3609 | 4.0048 | -0.3562 | [-0.5693, -0.1688] |
+
+Relevant retrieved context improves teacher-forced gold-answer likelihood on both synthetic sets. However, the unseen NLL improvement is only marginally different from the baseline byte model's -0.3419 delta, while its mean token F1 is slightly lower (0.0266 versus 0.0313). Irrelevant memory also worsened unseen mean NLL relative to no memory (4.4953 versus 4.3609). These results do not show a useful generation improvement.
+
+### Conclusion
+
+The pointer-copy head trains, passes unit tests, and changes answer-token likelihood, but it does **not** solve the generation bottleneck. Exact generated-answer accuracy remains 0/64 on unseen facts and 0/16 on familiar facts. The current copy distribution operates over input tokens and is not evidence of learned persistent memory in model weights; SQLite retrieval still supplies external context. Do not present this model as a reliable factual assistant.
+
+A better next step is to isolate copying from language modeling with a small, explicitly supervised span-copy task: train the model to select the answer span from a retrieved passage, evaluate exact span reproduction on held-out fact values, and separately measure distractor resistance. Keep the existing QA set untouched as the end-to-end regression benchmark. No paid compute or hosted generation API was used.
