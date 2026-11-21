@@ -46,8 +46,8 @@ class TinyLMSpanCopyTests(unittest.TestCase):
 
     def test_training_preparation_skips_paraphrases_without_spans(self):
         rows = [
-            {"prompt": "M:The export format is CBOR.\\nQ:format?\\nA:", "response": "CBOR"},
-            {"prompt": "M:The export format is CBOR.\\nQ:format?\\nA:", "response": "It uses CBOR."},
+            {"prompt": "M:The export format is CBOR.\nQ:format?\nA:", "response": "CBOR"},
+            {"prompt": "M:The export format is CBOR.\nQ:format?\nA:", "response": "It uses CBOR."},
         ]
         prepared, skipped_missing, skipped_long = prepare_training_examples(
             rows, block_size=64

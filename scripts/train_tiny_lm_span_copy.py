@@ -210,7 +210,7 @@ def main():
     if eval_cases:
         trained_metrics = evaluate(model, eval_cases, device, model.config.block_size)
         report = {"baseline_before_supervision": baseline_metrics, "after_span_supervision": trained_metrics}
-        Path(args.output).write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+        Path(args.output).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         print("After span supervision: " + json.dumps({key: value for key, value in trained_metrics.items() if key != "per_case"}, indent=2))
 
 
