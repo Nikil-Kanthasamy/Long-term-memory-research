@@ -137,18 +137,26 @@ def fit_memory_prompt(question, memory, answer, block_size, tokenizer=None):
     return prompt
 
 def evaluate(model, cases, device, block_size):
+    """Evaluate only extractive cases and explicitly count unscorable paraphrases."""
     tokenizer = ByteTokenizer()
     results = []
+    skipped_missing_answer = 0
     model.eval()
     with torch.no_grad():
         for case in cases:
             memories = case.get("memories") or []
             if not memories:
                 raise ValueError("each evaluation case needs at least one memory")
-            prompt = fit_memory_prompt(
-                case["question"], memories[0], case["expected_answer"],
-                block_size, tokenizer,
-            )
+            try:
+                prompt = fit_memory_prompt(
+                    case["question"], memories[0], case["expected_answer"],
+                    block_size, tokenizer,
+                )
+            except ValueError as error:
+                if "answer span is not present" not in str(error):
+                    raise
+                skipped_missing_answer += 1
+                continue
             ids, start, end, query_position, memory_end = locate_answer_span(
                 prompt, case["expected_answer"], tokenizer
             )
@@ -160,8 +168,11 @@ def evaluate(model, cases, device, block_size):
             scores["case_id"] = case.get("id")
             results.append(scores)
     count = len(results)
+    if not count:
+        raise ValueError("no evaluation cases contain an answer span verbatim in retrieved memory")
     return {
         "examples": count,
+        "skipped_missing_answer_span": skipped_missing_answer,
         "mean_gold_span_mass": sum(row["gold_span_mass"] for row in results) / count,
         "top_span_accuracy": sum(row["top_span_match"] for row in results) / count,
         "mean_gold_span_rank": sum(row["gold_span_rank"] for row in results) / count,
