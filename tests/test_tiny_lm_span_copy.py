@@ -6,7 +6,7 @@ except ImportError:
     torch = None
 
 if torch is not None:
-    from scripts.train_tiny_lm_span_copy import locate_answer_span, prepare_training_examples, score_answer_span
+    from scripts.train_tiny_lm_span_copy import fit_memory_prompt, locate_answer_span, prepare_training_examples, score_answer_span
     from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
 
 
@@ -31,6 +31,18 @@ class TinyLMSpanCopyTests(unittest.TestCase):
         self.assertEqual(bytes(ids[start:end]).decode(), "CBOR")
         self.assertLess(end, memory_end)
         self.assertEqual(query, len(ids) - 1)
+
+    def test_evaluation_prompt_truncation_preserves_answer_span(self):
+        memory = "A long prefix with details. " * 4 + "The export format is CBOR. " + "Extra context. " * 4
+        prompt = fit_memory_prompt("Which format?", memory, "CBOR", block_size=64)
+        ids, start, end, _, memory_end = locate_answer_span(prompt, "CBOR")
+        self.assertLessEqual(len(ids), 64)
+        self.assertEqual(bytes(ids[start:end]).decode(), "CBOR")
+        self.assertLessEqual(end, memory_end)
+
+    def test_evaluation_prompt_rejects_answer_missing_from_memory(self):
+        with self.assertRaisesRegex(ValueError, "not present"):
+            fit_memory_prompt("Which format?", "Format is JSON.", "CBOR", block_size=64)
 
     def test_span_rank_uses_equal_length_candidate_windows(self):
         attention = torch.tensor([0.0, 0.0, 0.1, 0.7, 0.1, 0.1, 0.0])

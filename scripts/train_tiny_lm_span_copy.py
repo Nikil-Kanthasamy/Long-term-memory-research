@@ -104,6 +104,38 @@ def prepare_training_examples(rows, block_size, tokenizer=None):
         prepared.append((ids, start, end, query_position))
     return prepared, skipped_missing, skipped_long
 
+
+
+def fit_memory_prompt(question, memory, answer, block_size, tokenizer=None):
+    """Fit a QA prompt while preserving the complete answer span in memory.
+
+    If context is too long, retain a centered byte window around the gold span.
+    This is an answer-conditioned span-localization diagnostic, not a realistic
+    retrieval or answer-generation evaluation.
+    """
+    tokenizer = tokenizer or ByteTokenizer()
+    memory_ids = tokenizer.encode(memory)
+    answer_ids = tokenizer.encode(answer)
+    question_suffix = tokenizer.encode(f"\nQ:{question}\nA:")
+    memory_budget = block_size - 2 - len(question_suffix)
+    if not answer_ids or memory_budget < len(answer_ids):
+        raise ValueError("question and answer do not fit in the configured context")
+    answer_start = bytes(memory_ids).find(bytes(answer_ids))
+    if answer_start < 0:
+        raise ValueError("answer span is not present in the retrieved memory")
+    if len(memory_ids) > memory_budget:
+        spare = memory_budget - len(answer_ids)
+        window_start = max(0, min(
+            answer_start - spare // 2,
+            len(memory_ids) - memory_budget,
+        ))
+        memory_ids = memory_ids[window_start:window_start + memory_budget]
+    fitted_memory = tokenizer.decode(memory_ids)
+    prompt = f"M:{fitted_memory}\nQ:{question}\nA:"
+    if len(tokenizer.encode(prompt)) > block_size:
+        raise ValueError("unable to fit QA prompt into configured context")
+    return prompt
+
 def evaluate(model, cases, device, block_size):
     tokenizer = ByteTokenizer()
     results = []
@@ -113,12 +145,13 @@ def evaluate(model, cases, device, block_size):
             memories = case.get("memories") or []
             if not memories:
                 raise ValueError("each evaluation case needs at least one memory")
-            prompt = f"M:{memories[0]}\nQ:{case['question']}\nA:"
+            prompt = fit_memory_prompt(
+                case["question"], memories[0], case["expected_answer"],
+                block_size, tokenizer,
+            )
             ids, start, end, query_position, memory_end = locate_answer_span(
                 prompt, case["expected_answer"], tokenizer
             )
-            if len(ids) > block_size:
-                raise ValueError("evaluation prompt exceeds model block_size")
             input_ids = torch.tensor([ids], dtype=torch.long, device=device)
             _, _, attention = model(input_ids, return_copy_attention=True)
             scores = score_answer_span(
