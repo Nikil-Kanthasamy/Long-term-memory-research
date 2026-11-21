@@ -6,7 +6,7 @@ except ImportError:
     torch = None
 
 if torch is not None:
-    from scripts.train_tiny_lm_span_copy import fit_memory_prompt, locate_answer_span, prepare_training_examples, score_answer_span
+    from scripts.train_tiny_lm_span_copy import evaluate, fit_memory_prompt, locate_answer_span, prepare_training_examples, score_answer_span
     from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
 
 
@@ -55,6 +55,34 @@ class TinyLMSpanCopyTests(unittest.TestCase):
     def test_missing_answer_span_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "not present"):
             locate_answer_span("M:export=CBOR\nQ:format?\nA:", "JSON")
+
+    def test_evaluation_skips_non_extractive_paraphrases_and_reports_count(self):
+        torch.manual_seed(5)
+        model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=64, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0, copy_enabled=True,
+        ))
+        cases = [
+            {"id": "extractive", "question": "Which format?", "expected_answer": "CBOR",
+             "memories": ["The export format is CBOR."]},
+            {"id": "paraphrase", "question": "Which format?", "expected_answer": "It uses CBOR.",
+             "memories": ["The export format is CBOR."]},
+        ]
+        result = evaluate(model, cases, "cpu", 64)
+        self.assertEqual(result["examples"], 1)
+        self.assertEqual(result["skipped_missing_answer_span"], 1)
+        self.assertEqual(result["per_case"][0]["case_id"], "extractive")
+
+    def test_evaluation_rejects_dataset_with_no_extractable_answers(self):
+        torch.manual_seed(6)
+        model = TinyLanguageModel(TinyLMConfig(
+            vocab_size=256, block_size=64, d_model=16,
+            n_heads=4, n_layers=1, dropout=0.0, copy_enabled=True,
+        ))
+        cases = [{"question": "Which format?", "expected_answer": "JSON",
+                  "memories": ["The export format is CBOR."]}]
+        with self.assertRaisesRegex(ValueError, "no evaluation cases contain"):
+            evaluate(model, cases, "cpu", 64)
 
     def test_training_preparation_skips_paraphrases_without_spans(self):
         rows = [
