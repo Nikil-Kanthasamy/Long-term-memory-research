@@ -93,17 +93,20 @@ def memory_keys_from_hidden(hidden, memory_end):
     return hidden[:, 2:memory_end, :]
 
 
+def memory_keys_for_mode(model, input_ids, hidden, memory_end, mode):
+    """Select contextual positional states or the earlier raw token embeddings."""
+    if mode == "contextual":
+        return memory_keys_from_hidden(hidden, memory_end)
+    if mode == "token_embedding":
+        return model.token_embedding(input_ids[:, 2:memory_end])
+    raise ValueError("memory_key_mode must be contextual or token_embedding")
+
+
 def _logits(model, head, ids, query_position, memory_end, device, memory_key_mode="contextual"):
     input_ids = torch.tensor([ids], dtype=torch.long, device=device)
     _, _, hidden = model(input_ids, return_hidden=True)
     query = hidden[:, query_position:query_position + 1, :]
-    if memory_key_mode == "contextual":
-        keys = memory_keys_from_hidden(hidden, memory_end)
-    elif memory_key_mode == "token_embedding":
-        # Reproduce the earlier raw-byte embedding key representation.
-        keys = model.token_embedding(input_ids[:, 2:memory_end])
-    else:
-        raise ValueError("memory_key_mode must be contextual or token_embedding")
+    keys = memory_keys_for_mode(model, input_ids, hidden, memory_end, memory_key_mode)
     start, end, pair = head(query, keys)
     return start, end, pair
 
