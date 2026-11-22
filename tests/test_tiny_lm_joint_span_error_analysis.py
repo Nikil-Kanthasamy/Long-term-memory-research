@@ -1,6 +1,9 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
-from scripts.analyze_tiny_lm_joint_span_errors import gold_span, summarize
+from scripts.analyze_tiny_lm_joint_span_errors import analyze, gold_span, summarize
 
 
 class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
@@ -49,6 +52,35 @@ class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
         self.assertEqual(result["fraction_start_too_late"], 0.5)
         self.assertEqual(result["fraction_predicted_span_too_long"], 0.5)
         self.assertEqual(result["fraction_predicted_span_too_short"], 0.5)
+
+
+    def _analyze_predictions(self, predictions):
+        cases = [{
+            "id": "case-1",
+            "memories": ["The code is ABC123."],
+            "question": "What is the code?",
+            "expected_answer": "ABC123",
+        }]
+        payload = {"after_joint_span_supervision": {"per_case": predictions}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "seed.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            return analyze(cases, [str(path)], 128)
+
+    def test_duplicate_case_predictions_are_rejected(self):
+        row = {"case_id": "case-1", "predicted_start": 13, "predicted_end_inclusive": 18}
+        with self.assertRaisesRegex(ValueError, "duplicate prediction"):
+            self._analyze_predictions([row, row])
+
+    def test_out_of_range_prediction_is_rejected(self):
+        row = {"case_id": "case-1", "predicted_start": 0, "predicted_end_inclusive": 999}
+        with self.assertRaisesRegex(ValueError, "outside retained memory"):
+            self._analyze_predictions([row])
+
+    def test_non_integer_offsets_are_rejected(self):
+        row = {"case_id": "case-1", "predicted_start": "13", "predicted_end_inclusive": 18}
+        with self.assertRaisesRegex(ValueError, "non-integer"):
+            self._analyze_predictions([row])
 
 
 if __name__ == "__main__":
