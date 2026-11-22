@@ -1,7 +1,6 @@
 """Offline error analysis for answer-length-free joint-span evaluation JSONs."""
 import argparse
 import json
-from collections import defaultdict
 from pathlib import Path
 from statistics import mean
 
@@ -46,7 +45,12 @@ def summarize(rows):
         "joint_end_boundary_accuracy": mean(row["end_error"] == 0 for row in rows),
         "mean_absolute_start_error_bytes": mean(row["abs_start_error"] for row in rows),
         "mean_absolute_end_error_bytes": mean(row["abs_end_error"] for row in rows),
+        "mean_signed_start_error_bytes": mean(row["start_error"] for row in rows),
+        "fraction_start_too_early": mean(row["start_error"] > 0 for row in rows),
+        "fraction_start_too_late": mean(row["start_error"] < 0 for row in rows),
         "mean_predicted_span_length_error_bytes": mean(row["length_error"] for row in rows),
+        "fraction_predicted_span_too_long": mean(row["length_error"] > 0 for row in rows),
+        "fraction_predicted_span_too_short": mean(row["length_error"] < 0 for row in rows),
     }
 
 
@@ -94,6 +98,7 @@ def analyze(cases, result_paths, block_size):
         key = "1-4" if width <= 4 else "5-10" if width <= 10 else "11+"
         buckets[key].append(row)
     output["pooled_across_seeds"] = summarize(pooled)
+    output["per_case_pooled"] = pooled
     output["pooled_by_gold_answer_bytes"] = {
         key: summarize(rows) for key, rows in buckets.items()
     }
