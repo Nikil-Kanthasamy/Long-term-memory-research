@@ -110,13 +110,13 @@ def fit_memory_prompt(question, memory, block_size, tokenizer=None):
     """Fit a QA prompt with deterministic head truncation independent of gold answer."""
     tokenizer = tokenizer or ByteTokenizer()
     memory_ids = tokenizer.encode(memory)
-    question_suffix = tokenizer.encode(f"\\nQ:{question}\\nA:")
+    question_suffix = tokenizer.encode(f"\nQ:{question}\nA:")
     memory_budget = block_size - 2 - len(question_suffix)
     if memory_budget < 0:
         raise ValueError("question does not fit in the configured context")
     memory_ids = memory_ids[:memory_budget]
     fitted_memory = tokenizer.decode(memory_ids)
-    prompt = f"M:{fitted_memory}\\nQ:{question}\\nA:"
+    prompt = f"M:{fitted_memory}\nQ:{question}\nA:"
     if len(tokenizer.encode(prompt)) > block_size:
         raise ValueError("unable to fit QA prompt into configured context")
     return prompt

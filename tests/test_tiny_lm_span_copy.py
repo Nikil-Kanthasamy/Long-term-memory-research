@@ -8,7 +8,7 @@ except ImportError:
 if torch is not None:
     from scripts.train_tiny_lm_span_copy import evaluate, fit_memory_prompt, locate_answer_span, prepare_training_examples, score_answer_span
     from src.ltm.tiny_lm import ByteTokenizer
-    from src.ltm.tiny_lm import TinyLanguageModel, TinyLMConfig
+    from src.ltm.tiny_lm import ByteTokenizer, TinyLanguageModel, TinyLMConfig
 
 
 @unittest.skipIf(torch is None, "optional PyTorch dependency is not installed")
