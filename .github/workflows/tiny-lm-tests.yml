@@ -18,6 +18,8 @@ on:
       - "scripts/evaluate_tiny_lm_memory_qa.py"
       - "scripts/train_tiny_lm_span_copy.py"
       - "tests/test_tiny_lm_span_copy.py"
+      - "tests/test_tiny_lm_boundary_span.py"
+      - "scripts/train_tiny_lm_boundary_span.py"
       - "tests/test_tiny_lm.py"
       - "examples/tiny_lm_sft_demo.jsonl"
       - "scripts/prepare_wikitext.py"
@@ -88,6 +90,9 @@ jobs:
         run: |
           set -o pipefail
           python scripts/train_tiny_lm_span_copy.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --output-checkpoint models/tiny-memory-lm-copy/span-copy.pt --eval-cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --output copy-span-unseen-evaluation.json --steps 600 --batch-size 4 --device cpu | tee copy-span-training.log
+      - name: Train and evaluate answer-length-free memory span boundaries
+        run: |
+          python scripts/train_tiny_lm_boundary_span.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --output-checkpoint models/tiny-memory-lm-copy/boundary-span.pt --eval-cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --output copy-boundary-span-evaluation.json --steps 600 --batch-size 4 --device cpu | tee copy-boundary-span-training.log
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
@@ -115,4 +120,7 @@ jobs:
             models/tiny-memory-lm-copy/span-copy.pt
             copy-span-training.log
             copy-span-unseen-evaluation.json
+            models/tiny-memory-lm-copy/boundary-span.pt
+            copy-boundary-span-training.log
+            copy-boundary-span-evaluation.json
           retention-days: 30

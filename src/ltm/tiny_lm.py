@@ -104,7 +104,7 @@ class TinyLanguageModel(nn.Module):
             if isinstance(module, nn.Linear) and module.bias is not None:
                 nn.init.zeros_(module.bias)
 
-    def forward(self, input_ids, targets=None, return_copy_attention=False):
+    def forward(self, input_ids, targets=None, return_copy_attention=False, return_hidden=False):
         batch, length = input_ids.shape
         if length > self.config.block_size:
             raise ValueError("input exceeds configured block_size")
@@ -144,8 +144,12 @@ class TinyLanguageModel(nn.Module):
                 logits.reshape(batch * length, self.config.vocab_size),
                 targets.reshape(batch * length),
             )
+        if return_copy_attention and return_hidden:
+            return logits, loss, copy_attention, normalized_hidden
         if return_copy_attention:
             return logits, loss, copy_attention
+        if return_hidden:
+            return logits, loss, normalized_hidden
         return logits, loss
 
     @torch.no_grad()
