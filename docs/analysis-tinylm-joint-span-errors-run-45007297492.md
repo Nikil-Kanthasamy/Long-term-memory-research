@@ -71,3 +71,7 @@ The analyzer and its tests are post-processing utilities; they do not retrain th
 ## Lightweight CI
 
 A separate workflow, `.github/workflows/joint-span-analysis-tests.yml`, now runs only the offline analyzer unit tests and CLI help check when the analyzer, its tests, or the workflow itself changes. This keeps diagnostic validation separate from the expensive model-training workflow. The workflow file is committed; no Actions run was returned for its introducing commit, so its first execution is still pending.
+
+## Artifact metadata correction
+
+The original `joint-span-seed-summary.json` in workflow artifact `14748244103` contains a stale protocol description saying the base model was frozen. Inspection of `train_tiny_lm_joint_span.py` and the per-seed training logs confirms that both the language model and joint-span head were optimized in every seed run. The research report above describes the actual protocol. The seed-sweep runner now emits corrected protocol metadata for future runs; the historical artifact itself is unchanged.
