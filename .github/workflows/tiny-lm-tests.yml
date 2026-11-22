@@ -21,6 +21,8 @@ on:
       - "tests/test_tiny_lm_boundary_span.py"
       - "scripts/train_tiny_lm_boundary_span.py"
       - "scripts/train_tiny_lm_joint_span.py"
+      - "scripts/run_tiny_lm_joint_span_seeds.py"
+      - ".github/workflows/tiny-lm-tests.yml"
       - "tests/test_tiny_lm_joint_span.py"
       - "tests/test_tiny_lm.py"
       - "examples/tiny_lm_sft_demo.jsonl"
