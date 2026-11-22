@@ -19,7 +19,7 @@ The answer-length-free joint-span selector reproduced the prior 28.07% exact-spa
 
 - Absolute range: 3.51 percentage points.
 - The original single-run joint-span result was 28.07% (16/57); seed 47 matched it exactly.
-- All runs used the same frozen copy-enabled base checkpoint, independent joint-head initialization per seed, 600 training steps, batch size 4, CPU execution, and the same evaluation cases.
+- All runs initialized from the same copy-enabled base checkpoint, then jointly optimized the language-model parameters and independently initialized joint-span head for each seed (600 steps, batch size 4, CPU, same evaluation cases).
 - Candidate scoring considers all ordered spans with start <= end over retained memory bytes. **Gold answer length is not supplied** to define candidate windows.
 
 ## Context and limitations
@@ -27,7 +27,7 @@ The answer-length-free joint-span selector reproduced the prior 28.07% exact-spa
 - Evaluation size is 57 eligible cases per seed. Seven cases were skipped because the answer span was missing or outside the retained answer-independent context.
 - The training data prepared 288 joint-span examples; 48 non-extractive/paraphrased rows were skipped, and zero rows were skipped for exceeding context.
 - The 30.41% mean is a small-set extractive span-selection metric, not free-form answer accuracy, not a retrieval metric, and not evidence of broad generalization.
-- This sweep varies joint-head initialization while keeping the copy-enabled base checkpoint frozen. It is not a full end-to-end multi-seed retraining of the language model.
+- This sweep varies joint-head initialization and independently fine-tunes the language model from the same starting checkpoint for each seed. It is therefore a multi-seed fine-tuning replication, not three independent from-scratch pretraining runs.
 - Earlier gold-length-conditioned span-mass/top-span diagnostics are not directly comparable to this answer-length-free evaluation.
 
 ## Workflow status
