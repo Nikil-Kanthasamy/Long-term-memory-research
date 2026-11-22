@@ -93,16 +93,22 @@ def memory_keys_from_hidden(hidden, memory_end):
     return hidden[:, 2:memory_end, :]
 
 
-def _logits(model, head, ids, query_position, memory_end, device):
+def _logits(model, head, ids, query_position, memory_end, device, memory_key_mode="contextual"):
     input_ids = torch.tensor([ids], dtype=torch.long, device=device)
     _, _, hidden = model(input_ids, return_hidden=True)
     query = hidden[:, query_position:query_position + 1, :]
-    keys = memory_keys_from_hidden(hidden, memory_end)
+    if memory_key_mode == "contextual":
+        keys = memory_keys_from_hidden(hidden, memory_end)
+    elif memory_key_mode == "token_embedding":
+        # Reproduce the earlier raw-byte embedding key representation.
+        keys = model.token_embedding(input_ids[:, 2:memory_end])
+    else:
+        raise ValueError("memory_key_mode must be contextual or token_embedding")
     start, end, pair = head(query, keys)
     return start, end, pair
 
 
-def evaluate(model, head, cases, device, block_size, span_width_penalty=0.0):
+def evaluate(model, head, cases, device, block_size, span_width_penalty=0.0, memory_key_mode="contextual"):
     tokenizer = ByteTokenizer()
     model.eval()
     head.eval()
@@ -124,7 +130,7 @@ def evaluate(model, head, cases, device, block_size, span_width_penalty=0.0):
                 skipped += 1
                 continue
             start_logits, end_logits, pair_logits = _logits(
-                model, head, ids, query_position, memory_end, device
+                model, head, ids, query_position, memory_end, device, memory_key_mode
             )
             # locate_answer_span uses exclusive end; memory keys start at prompt offset 2.
             true_start, true_end = start - 2, end - 3
@@ -145,6 +151,7 @@ def evaluate(model, head, cases, device, block_size, span_width_penalty=0.0):
         "mean_joint_span_rank": sum(x["joint_rank"] for x in results) / count,
         "candidate_protocol": "all ordered spans start<=end over retained memory bytes; no gold answer length or length-conditioned windows",
         "span_width_penalty_per_byte": span_width_penalty,
+        "memory_key_mode": memory_key_mode,
         "per_case": results,
     }
 
@@ -161,6 +168,7 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=47)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
+    parser.add_argument("--memory-key-mode", choices=["contextual", "token_embedding"], default="contextual")
     args = parser.parse_args()
     if args.steps < 1 or args.batch_size < 1:
         parser.error("steps and batch-size must be positive")
@@ -180,7 +188,7 @@ def main():
     if not prepared:
         parser.error("no extractive training examples fit the context")
     eval_cases = load_jsonl(args.eval_cases)
-    baseline = evaluate(model, head, eval_cases, device, model.config.block_size)
+    baseline = evaluate(model, head, eval_cases, device, model.config.block_size, memory_key_mode=args.memory_key_mode)
     print("Before joint-span training: " + json.dumps({k: v for k, v in baseline.items() if k != "per_case"}))
     params = list(model.parameters()) + list(head.parameters())
     optimizer = torch.optim.AdamW(params, lr=args.learning_rate)
@@ -190,7 +198,7 @@ def main():
         batch = random.choices(prepared, k=min(args.batch_size, len(prepared)))
         losses = []
         for ids, start, end, query_position, memory_end in batch:
-            _, _, pair = _logits(model, head, ids, query_position, memory_end, device)
+            _, _, pair = _logits(model, head, ids, query_position, memory_end, device, args.memory_key_mode)
             pair = mask_invalid_spans(pair)
             losses.append(joint_span_loss(
                 pair,
@@ -204,7 +212,7 @@ def main():
         optimizer.step()
         if step == 1 or step % max(1, args.steps // 10) == 0 or step == args.steps:
             print(f"step={step} joint_span_loss={loss.item():.4f}")
-    trained = evaluate(model, head, eval_cases, device, model.config.block_size)
+    trained = evaluate(model, head, eval_cases, device, model.config.block_size, memory_key_mode=args.memory_key_mode)
     payload = {
         "model": model.checkpoint(),
         "joint_span_head": head.state_dict(),
@@ -212,6 +220,7 @@ def main():
         "steps": args.steps,
         "training_examples": len(prepared),
         "objective": "cross_entropy_over_all_valid_ordered_start_end_pairs",
+        "memory_key_mode": args.memory_key_mode,
     }
     output = Path(args.output_checkpoint)
     output.parent.mkdir(parents=True, exist_ok=True)
