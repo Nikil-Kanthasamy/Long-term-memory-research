@@ -10,6 +10,10 @@ on:
       - "scripts/train_tiny_lm_joint_span.py"
       - "scripts/evaluate_tiny_lm_joint_span_penalties.py"
       - "tests/test_tiny_lm_joint_span.py"
+      - "examples/tiny_lm_memory_qa_dev_facts.jsonl"
+      - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
+      - "scripts/generate_memory_sft.py"
+      - "docs/joint-span-width-penalty-development.md"
       - ".github/workflows/joint-span-analysis-tests.yml"
 
 jobs:
@@ -32,3 +36,21 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_tiny_lm_joint_span.py' -v
       - name: Check penalty sweep CLI
         run: python scripts/evaluate_tiny_lm_joint_span_penalties.py --help
+      - name: Validate fact-cluster-held-out development fixture
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from scripts.generate_memory_sft import FACTS
+          dev = [json.loads(line) for line in Path('examples/tiny_lm_memory_qa_dev_facts.jsonl').read_text().splitlines() if line.strip()]
+          test = [json.loads(line) for line in Path('examples/tiny_lm_memory_qa_unseen_facts.jsonl').read_text().splitlines() if line.strip()]
+          assert len(dev) == 16, len(dev)
+          assert len({row['id'] for row in dev}) == len(dev)
+          assert not ({row['fact_cluster_id'] for row in dev} & {row['fact_cluster_id'] for row in test})
+          assert set(Counter(row['fact_cluster_id'] for row in dev).values()) == {2}
+          training_values = {value for _, value in FACTS}
+          assert not ({row['expected_answer'] for row in dev} & training_values)
+          assert all(row['expected_answer'] in row['memories'][0] for row in dev)
+          print(f'Validated {len(dev)} dev questions across {len(set(row[\"fact_cluster_id\"] for row in dev))} held-out fact clusters; no overlap with final-test clusters or training answer values.')
+          PY
