@@ -40,3 +40,16 @@ class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_signed_start_error_distinguishes_early_and_late(self):
+        rows = [
+            {"exact": False, "start_error": -2, "end_error": 0,
+             "abs_start_error": 2, "abs_end_error": 0, "length_error": 2},
+            {"exact": False, "start_error": 3, "end_error": 0,
+             "abs_start_error": 3, "abs_end_error": 0, "length_error": -3},
+        ]
+        result = summarize(rows)
+        self.assertEqual(result["fraction_start_too_early"], 0.5)
+        self.assertEqual(result["fraction_start_too_late"], 0.5)
+        self.assertEqual(result["fraction_predicted_span_too_long"], 0.5)
+        self.assertEqual(result["fraction_predicted_span_too_short"], 0.5)
