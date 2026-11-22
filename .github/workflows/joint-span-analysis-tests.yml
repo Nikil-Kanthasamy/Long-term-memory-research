@@ -23,7 +23,7 @@ jobs:
       - name: Install CPU PyTorch
         run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Compile analyzer and tests
-        run: python -m compileall -q scripts/analyze_tiny_lm_joint_span_errors.py tests/test_tiny_lm_joint_span_error_analysis.py
+        run: python -m compileall -q scripts/analyze_tiny_lm_joint_span_errors.py scripts/train_tiny_lm_joint_span.py scripts/evaluate_tiny_lm_joint_span_penalties.py tests/test_tiny_lm_joint_span_error_analysis.py tests/test_tiny_lm_joint_span.py
       - name: Run offline analysis utility tests
         run: python -m unittest discover -s tests -p 'test_tiny_lm_joint_span_error_analysis.py' -v
       - name: Check analyzer CLI
