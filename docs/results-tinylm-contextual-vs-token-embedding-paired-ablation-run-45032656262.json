@@ -1,0 +1,55 @@
+{
+  "protocol": "paired per-seed runs; same copy-enabled base checkpoint, seed, training examples, optimizer settings, steps, and evaluation cases; both model and span head fine-tuned; no gold answer length; only memory-key representation differs",
+  "seeds": [
+    13,
+    29,
+    47
+  ],
+  "steps": 600,
+  "batch_size": 4,
+  "learning_rate": 0.0001,
+  "paired_runs": [
+    {
+      "seed": 13,
+      "examples": 57,
+      "contextual_exact_span_accuracy": 0.42105263157894735,
+      "token_embedding_exact_span_accuracy": 0.3157894736842105,
+      "exact_accuracy_delta_contextual_minus_token_embedding": 0.10526315789473684,
+      "contextual_mean_joint_span_rank": 28.035087719298247,
+      "token_embedding_mean_joint_span_rank": 66.40350877192982
+    },
+    {
+      "seed": 29,
+      "examples": 57,
+      "contextual_exact_span_accuracy": 0.5263157894736842,
+      "token_embedding_exact_span_accuracy": 0.3157894736842105,
+      "exact_accuracy_delta_contextual_minus_token_embedding": 0.21052631578947367,
+      "contextual_mean_joint_span_rank": 36.280701754385966,
+      "token_embedding_mean_joint_span_rank": 64.94736842105263
+    },
+    {
+      "seed": 47,
+      "examples": 57,
+      "contextual_exact_span_accuracy": 0.49122807017543857,
+      "token_embedding_exact_span_accuracy": 0.2807017543859649,
+      "exact_accuracy_delta_contextual_minus_token_embedding": 0.21052631578947367,
+      "contextual_mean_joint_span_rank": 26.403508771929825,
+      "token_embedding_mean_joint_span_rank": 58.228070175438596
+    }
+  ],
+  "mean_contextual_exact_span_accuracy": 0.47953216374269003,
+  "mean_token_embedding_exact_span_accuracy": 0.30409356725146197,
+  "mean_paired_exact_accuracy_delta": 0.17543859649122806,
+  "contextual_wins": 3,
+  "ties": 0,
+  "token_embedding_wins": 0,
+  "evaluation": {
+    "total_cases": 64,
+    "eligible_cases": 57,
+    "skipped_missing_answer_span": 7,
+    "candidate_protocol": "all ordered spans start<=end over retained memory bytes; no gold answer length or length-conditioned windows"
+  },
+  "artifact_id": 14758333134,
+  "workflow_run_id": 45032656262,
+  "evaluated_code_commit": "956c7b127dae6a26ee60d3b125eaa09dc2d12638"
+}
