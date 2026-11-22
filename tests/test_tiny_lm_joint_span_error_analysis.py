@@ -19,6 +19,16 @@ class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
         self.assertEqual(width, len("answer".encode("utf-8")))
         self.assertEqual(end - start + 1, width)
 
+    def test_empty_expected_answer_is_rejected(self):
+        case = {
+            "id": "empty",
+            "memories": ["some memory"],
+            "question": "what?",
+            "expected_answer": "",
+        }
+        with self.assertRaisesRegex(ValueError, "expected answer cannot be empty"):
+            gold_span(case, 128)
+
     def test_missing_answer_after_context_truncation_is_unscorable(self):
         case = {
             "id": "two",
