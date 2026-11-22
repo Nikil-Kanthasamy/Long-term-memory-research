@@ -46,3 +46,23 @@ The most visible failure mode is a **start boundary placed too early**, creating
 - The bucket counts are pooled across seeds and must not be interpreted as 171 independent test examples.
 - The analysis uses the actual joint-decoder predicted offsets and gold strings located in the corresponding retained memories. It does not measure free-form generation or retrieval quality.
 - No new model was trained and no evaluation split was used for hyperparameter selection in this analysis.
+
+
+## Reproducible diagnostics
+
+The offline analyzer now also reports signed start offsets (negative means predicted start is too early), early/late start fractions, overlong/short span fractions, and the pooled per-case rows. This makes it possible to audit the direction of the error rather than relying only on absolute offsets.
+
+Run it from the repository root after downloading and extracting the workflow artifact:
+
+```bash
+python scripts/analyze_tiny_lm_joint_span_errors.py \
+  --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl \
+  --seed-results joint-span-seed-sweep/joint-span-seed-13.json \
+                 joint-span-seed-sweep/joint-span-seed-29.json \
+                 joint-span-seed-sweep/joint-span-seed-47.json \
+  --block-size 128 \
+  --output joint-span-error-analysis.json
+python -m unittest tests.test_tiny_lm_joint_span_error_analysis -v
+```
+
+The analyzer and its tests are post-processing utilities; they do not retrain the model or tune any parameter against the evaluation set. The newly added signed-error test cases were checked against the helper logic, but a repository CI run has not yet been triggered for these post-processing-only files.
