@@ -78,7 +78,7 @@ def analyze(cases, result_paths, block_size):
             gold_start, gold_end, gold_width = span
             predicted_start = prediction["predicted_start"]
             predicted_end = prediction["predicted_end_inclusive"]
-            if not isinstance(predicted_start, int) or not isinstance(predicted_end, int):
+            if type(predicted_start) is not int or type(predicted_end) is not int:
                 raise ValueError(f"{path}: {case_id} has non-integer predicted offsets")
             retained_memory_bytes = len(
                 (case_by_id[case_id].get("memories") or [None])[0].encode("utf-8")
@@ -106,6 +106,17 @@ def analyze(cases, result_paths, block_size):
                 "exact": predicted_start == gold_start and predicted_end == gold_end,
             }
             seed_rows.append(row)
+        expected_case_ids = {
+            case_id for case_id, case in case_by_id.items()
+            if gold_span(case, block_size) is not None
+        }
+        missing_case_ids = expected_case_ids - seen_case_ids
+        if missing_case_ids:
+            preview = ", ".join(sorted(missing_case_ids)[:5])
+            raise ValueError(
+                f"{path}: missing {len(missing_case_ids)} eligible predictions"
+                + (f" (for example: {preview})" if preview else "")
+            )
         seed = Path(path).stem
         output["seeds"][seed] = summarize(seed_rows)
         pooled.extend(seed_rows)
