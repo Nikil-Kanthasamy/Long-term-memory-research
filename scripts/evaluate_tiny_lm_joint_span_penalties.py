@@ -3,8 +3,13 @@ import argparse
 import json
 import math
 from pathlib import Path
+import sys
 
 import torch
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from scripts.train_tiny_lm_joint_span import JointSpanHead, evaluate
 from scripts.train_tiny_lm_span_copy import load_jsonl
