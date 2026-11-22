@@ -64,16 +64,34 @@ def analyze(cases, result_paths, block_size):
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         metrics = payload["after_joint_span_supervision"]
         seed_rows = []
+        seen_case_ids = set()
         for prediction in metrics["per_case"]:
             case_id = prediction["case_id"]
             if case_id not in case_by_id:
                 raise ValueError(f"{path}: unknown case ID {case_id}")
+            if case_id in seen_case_ids:
+                raise ValueError(f"{path}: duplicate prediction for case ID {case_id}")
+            seen_case_ids.add(case_id)
             span = gold_span(case_by_id[case_id], block_size)
             if span is None:
                 raise ValueError(f"{path}: {case_id} has no answer in retained memory")
             gold_start, gold_end, gold_width = span
             predicted_start = prediction["predicted_start"]
             predicted_end = prediction["predicted_end_inclusive"]
+            if not isinstance(predicted_start, int) or not isinstance(predicted_end, int):
+                raise ValueError(f"{path}: {case_id} has non-integer predicted offsets")
+            retained_memory_bytes = len(
+                (case_by_id[case_id].get("memories") or [None])[0].encode("utf-8")
+            )
+            question_suffix_bytes = len(
+                f"\\nQ:{case_by_id[case_id]['question']}\\nA:".encode("utf-8")
+            )
+            retained_limit = min(retained_memory_bytes, max(0, block_size - 2 - question_suffix_bytes))
+            if predicted_start < 0 or predicted_end < predicted_start or predicted_end >= retained_limit:
+                raise ValueError(
+                    f"{path}: {case_id} predicted span [{predicted_start}, {predicted_end}] "
+                    f"is outside retained memory length {retained_limit}"
+                )
             start_error = predicted_start - gold_start
             end_error = predicted_end - gold_end
             row = {
