@@ -8,7 +8,7 @@
 
 ## Result
 
-The answer-length-free joint-span selector reproduced the prior 28.07% exact-span result across three independent joint-head initialization seeds. Mean exact-span accuracy was **30.41%** (17.33/57 expected cases), with a range of **28.07–31.58%**.
+The answer-length-free joint-span selector reproduced the prior 28.07% exact-span result across three independent joint-head initialization seeds. Mean exact-span accuracy was **30.41%** (an average of 17.33 exact matches per 57-case evaluation), with a range of **28.07–31.58%**.
 
 | Seed | Evaluation cases | Start top-1 | End top-1 | Exact joint span | Mean joint-span rank |
 |---:|---:|---:|---:|---:|---:|
