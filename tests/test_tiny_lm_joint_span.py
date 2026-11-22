@@ -8,11 +8,18 @@ except ImportError:
 if torch is not None:
     from scripts.train_tiny_lm_joint_span import (
         JointSpanHead, joint_span_loss, mask_invalid_spans, score_joint_span,
+        memory_keys_from_hidden,
     )
 
 
 @unittest.skipIf(torch is None, "optional PyTorch dependency is not installed")
 class TinyLMJointSpanTests(unittest.TestCase):
+    def test_memory_keys_preserve_contextual_position_specific_states(self):
+        hidden = torch.arange(2 * 7 * 3, dtype=torch.float32).reshape(2, 7, 3)
+        keys = memory_keys_from_hidden(hidden, memory_end=6)
+        self.assertEqual(tuple(keys.shape), (2, 4, 3))
+        self.assertTrue(torch.equal(keys, hidden[:, 2:6, :]))
+
     def test_joint_head_scores_all_start_end_pairs(self):
         head = JointSpanHead(16)
         start, end, pair = head(torch.randn(2, 1, 16), torch.randn(2, 9, 16))
