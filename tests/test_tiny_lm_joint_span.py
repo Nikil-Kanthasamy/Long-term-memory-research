@@ -33,6 +33,21 @@ class TinyLMJointSpanTests(unittest.TestCase):
         loss.backward()
         self.assertIsNotNone(logits.grad)
 
+    def test_span_width_penalty_can_prefer_a_shorter_candidate(self):
+        logits = torch.full((1, 4, 4), -10.0)
+        logits[0, 0, 2] = 10.0
+        logits[0, 1, 1] = 9.0
+        unpenalized = score_joint_span(logits, 1, 1)
+        penalized = score_joint_span(logits, 1, 1, span_width_penalty=0.6)
+        self.assertEqual(unpenalized["predicted_start"], 0)
+        self.assertEqual(unpenalized["predicted_end_inclusive"], 2)
+        self.assertEqual(penalized["predicted_start"], 1)
+        self.assertEqual(penalized["predicted_end_inclusive"], 1)
+
+    def test_negative_span_width_penalty_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            score_joint_span(torch.zeros(1, 3, 3), 0, 0, span_width_penalty=-0.1)
+
     def test_joint_scoring_is_answer_length_free(self):
         logits = torch.full((1, 5, 5), -10.0)
         logits[0, 1, 3] = 10.0
