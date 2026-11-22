@@ -1,6 +1,7 @@
 """Train a joint, answer-length-free start/end span selector."""
 import argparse
 import json
+import math
 import random
 import sys
 from pathlib import Path
@@ -64,8 +65,8 @@ def joint_span_loss(pair_logits, start_target, end_target):
 
 def score_joint_span(pair_logits, start, end, span_width_penalty=0.0):
     """Rank spans after an optional fixed per-byte penalty for wider spans."""
-    if span_width_penalty < 0:
-        raise ValueError("span_width_penalty must be non-negative")
+    if not math.isfinite(span_width_penalty) or span_width_penalty < 0:
+        raise ValueError("span_width_penalty must be finite and non-negative")
     adjusted = mask_invalid_spans(pair_logits).detach().float()
     length = adjusted.size(-1)
     starts = torch.arange(length, device=adjusted.device).unsqueeze(1)
