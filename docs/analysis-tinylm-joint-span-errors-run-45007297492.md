@@ -62,7 +62,7 @@ python scripts/analyze_tiny_lm_joint_span_errors.py \
                  joint-span-seed-sweep/joint-span-seed-47.json \
   --block-size 128 \
   --output joint-span-error-analysis.json
-python -m unittest tests.test_tiny_lm_joint_span_error_analysis -v
+python -m unittest discover -s tests -p 'test_tiny_lm_joint_span_error_analysis.py' -v
 ```
 
 The analyzer and its tests are post-processing utilities; they do not retrain the model or tune any parameter against the evaluation set. The newly added signed-error test cases were checked against the helper logic, but a repository CI run has not yet been triggered for these post-processing-only files.
