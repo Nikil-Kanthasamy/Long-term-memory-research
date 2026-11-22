@@ -442,5 +442,47 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
             for rows in by_cluster.values()
         ))
 
+
+    def test_curated_answer_aliases_match_paraphrases_without_partial_substrings(self):
+        from scripts.evaluate_tiny_lm_memory_qa import (
+            accepted_answer_references, contains_any_accepted_answer,
+            max_accepted_token_f1, retrieval_contains_expected,
+        )
+        case = {
+            "expected_answer": "37 minutes",
+            "accepted_answers": ["37 minutes", "every thirty-seven minutes", "a 37-minute interval"],
+        }
+        aliases = accepted_answer_references(case)
+        self.assertTrue(contains_any_accepted_answer(
+            "The worker runs every thirty-seven minutes.", aliases
+        ))
+        self.assertFalse(contains_any_accepted_answer("137 minutes", aliases))
+        self.assertGreater(max_accepted_token_f1(
+            "The worker runs every thirty-seven minutes.", aliases
+        ), 0.5)
+        self.assertTrue(retrieval_contains_expected(
+            [{"content": "The background sync runs every thirty-seven minutes."}],
+            aliases,
+        ))
+
+    def test_answer_alias_loader_requires_canonical_answer_and_valid_strings(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases
+        invalid = [
+            {"question": "Q", "expected_answer": "A", "accepted_answers": []},
+            {"question": "Q", "expected_answer": "A", "accepted_answers": ["B"]},
+            {"question": "Q", "expected_answer": "A", "accepted_answers": ["A", " "]},
+            {"question": "Q", "expected_answer": "A", "accepted_answers": "A"},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cases.jsonl"
+            for case in invalid:
+                path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+                with self.subTest(case=case):
+                    with self.assertRaises(ValueError):
+                        load_cases(path)
+
 if __name__ == "__main__":
     unittest.main()
