@@ -96,7 +96,7 @@ def _logits(model, head, ids, query_position, memory_end, device):
     return start, end, pair
 
 
-def evaluate(model, head, cases, device, block_size):
+def evaluate(model, head, cases, device, block_size, span_width_penalty=0.0):
     tokenizer = ByteTokenizer()
     model.eval()
     head.eval()
@@ -122,7 +122,7 @@ def evaluate(model, head, cases, device, block_size):
             )
             # locate_answer_span uses exclusive end; memory keys start at prompt offset 2.
             true_start, true_end = start - 2, end - 3
-            row = score_joint_span(pair_logits, true_start, true_end)
+            row = score_joint_span(pair_logits, true_start, true_end, span_width_penalty)
             row["start_top1"] = int(start_logits.argmax().item()) == true_start
             row["end_top1"] = int(end_logits.argmax().item()) == true_end
             row["case_id"] = case.get("id")
@@ -138,6 +138,7 @@ def evaluate(model, head, cases, device, block_size):
         "joint_exact_span_accuracy": sum(x["exact_span_match"] for x in results) / count,
         "mean_joint_span_rank": sum(x["joint_rank"] for x in results) / count,
         "candidate_protocol": "all ordered spans start<=end over retained memory bytes; no gold answer length or length-conditioned windows",
+        "span_width_penalty_per_byte": span_width_penalty,
         "per_case": results,
     }
 
