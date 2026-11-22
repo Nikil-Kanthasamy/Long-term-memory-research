@@ -39,8 +39,10 @@ class JointSpanHead(nn.Module):
         start_pair = start_k * start_q
         end_pair = end_k * end_q
         compatibility = torch.matmul(start_pair, end_pair.transpose(1, 2)) / scale
+        start_logits = start_logits.squeeze(1)
+        end_logits = end_logits.squeeze(1)
         pair_logits = start_logits.unsqueeze(-1) + end_logits.unsqueeze(-2) + compatibility
-        return start_logits.squeeze(1), end_logits.squeeze(1), pair_logits.squeeze(1)
+        return start_logits, end_logits, pair_logits
 
 
 def mask_invalid_spans(pair_logits, max_span_bytes=None):
