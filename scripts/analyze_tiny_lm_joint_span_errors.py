@@ -84,7 +84,7 @@ def analyze(cases, result_paths, block_size):
                 (case_by_id[case_id].get("memories") or [None])[0].encode("utf-8")
             )
             question_suffix_bytes = len(
-                f"\\nQ:{case_by_id[case_id]['question']}\\nA:".encode("utf-8")
+                f"\nQ:{case_by_id[case_id]['question']}\nA:".encode("utf-8")
             )
             retained_limit = min(retained_memory_bytes, max(0, block_size - 2 - question_suffix_bytes))
             if predicted_start < 0 or predicted_end < predicted_start or predicted_end >= retained_limit:
