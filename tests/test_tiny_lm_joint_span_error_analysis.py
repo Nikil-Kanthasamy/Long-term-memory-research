@@ -91,6 +91,26 @@ class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing 1 eligible predictions"):
             self._analyze_predictions([])
 
+    def test_valid_complete_prediction_is_scored(self):
+        row = {"case_id": "case-1", "predicted_start": 12, "predicted_end_inclusive": 17}
+        result = self._analyze_predictions([row])
+        self.assertEqual(result["seeds"]["seed"]["examples"], 1)
+        self.assertEqual(result["seeds"]["seed"]["exact_span_accuracy"], 1.0)
+
+    def test_unanswerable_cases_are_excluded_from_coverage_requirement(self):
+        cases = [{
+            "id": "case-1",
+            "memories": ["The code is ABC123."],
+            "question": "What is the code?",
+            "expected_answer": "NOT_PRESENT",
+        }]
+        payload = {"after_joint_span_supervision": {"per_case": []}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "seed.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            result = analyze(cases, [str(path)], 128)
+        self.assertEqual(result["seeds"]["seed"], {"examples": 0})
+
 
 if __name__ == "__main__":
     unittest.main()
