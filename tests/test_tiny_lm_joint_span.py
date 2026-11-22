@@ -8,7 +8,7 @@ except ImportError:
 if torch is not None:
     from scripts.train_tiny_lm_joint_span import (
         JointSpanHead, joint_span_loss, mask_invalid_spans, score_joint_span,
-        memory_keys_from_hidden,
+        memory_keys_from_hidden, memory_keys_for_mode,
     )
 
 
@@ -19,6 +19,26 @@ class TinyLMJointSpanTests(unittest.TestCase):
         keys = memory_keys_from_hidden(hidden, memory_end=6)
         self.assertEqual(tuple(keys.shape), (2, 4, 3))
         self.assertTrue(torch.equal(keys, hidden[:, 2:6, :]))
+
+    def test_key_mode_ablation_selects_contextual_or_raw_embeddings(self):
+        class Model:
+            def __init__(self):
+                self.token_embedding = torch.nn.Embedding(16, 3)
+                with torch.no_grad():
+                    self.token_embedding.weight.copy_(torch.arange(48).reshape(16, 3))
+
+        model = Model()
+        input_ids = torch.tensor([[1, 2, 3, 4, 5, 6]])
+        hidden = torch.full((1, 6, 3), 99.0)
+        contextual = memory_keys_for_mode(model, input_ids, hidden, 6, "contextual")
+        raw = memory_keys_for_mode(model, input_ids, hidden, 6, "token_embedding")
+        self.assertTrue(torch.equal(contextual, hidden[:, 2:6, :]))
+        self.assertTrue(torch.equal(raw, model.token_embedding(input_ids[:, 2:6])))
+        self.assertFalse(torch.equal(contextual, raw))
+
+    def test_key_mode_ablation_rejects_unknown_mode(self):
+        with self.assertRaisesRegex(ValueError, "memory_key_mode"):
+            memory_keys_for_mode(None, None, None, 4, "unknown")
 
     def test_joint_head_scores_all_start_end_pairs(self):
         head = JointSpanHead(16)
