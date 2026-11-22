@@ -82,6 +82,15 @@ class TinyLMJointSpanErrorAnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-integer"):
             self._analyze_predictions([row])
 
+    def test_boolean_offsets_are_rejected_as_non_integer(self):
+        row = {"case_id": "case-1", "predicted_start": True, "predicted_end_inclusive": 17}
+        with self.assertRaisesRegex(ValueError, "non-integer"):
+            self._analyze_predictions([row])
+
+    def test_missing_eligible_predictions_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "missing 1 eligible predictions"):
+            self._analyze_predictions([])
+
 
 if __name__ == "__main__":
     unittest.main()
