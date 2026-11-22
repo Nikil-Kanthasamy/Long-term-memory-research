@@ -29,6 +29,8 @@ def gold_span(case, block_size):
         raise ValueError(f"{case.get('id')}: question exceeds context")
     retained = memory_bytes[:memory_budget]
     answer = case["expected_answer"].encode("utf-8")
+    if not answer:
+        raise ValueError(f"{case.get('id')}: expected answer cannot be empty")
     start = retained.find(answer)
     if start < 0:
         return None
