@@ -106,41 +106,28 @@ def prepare_training_examples(rows, block_size, tokenizer=None):
 
 
 
-def fit_memory_prompt(question, memory, answer, block_size, tokenizer=None):
-    """Fit a QA prompt while preserving the complete answer span in memory.
-
-    If context is too long, retain a centered byte window around the gold span.
-    This is an answer-conditioned span-localization diagnostic, not a realistic
-    retrieval or answer-generation evaluation.
-    """
+def fit_memory_prompt(question, memory, block_size, tokenizer=None):
+    """Fit a QA prompt with deterministic head truncation independent of gold answer."""
     tokenizer = tokenizer or ByteTokenizer()
     memory_ids = tokenizer.encode(memory)
-    answer_ids = tokenizer.encode(answer)
-    question_suffix = tokenizer.encode(f"\nQ:{question}\nA:")
+    question_suffix = tokenizer.encode(f"\\nQ:{question}\\nA:")
     memory_budget = block_size - 2 - len(question_suffix)
-    if not answer_ids or memory_budget < len(answer_ids):
-        raise ValueError("question and answer do not fit in the configured context")
-    answer_start = bytes(memory_ids).find(bytes(answer_ids))
-    if answer_start < 0:
-        raise ValueError("answer span is not present in the retrieved memory")
-    if len(memory_ids) > memory_budget:
-        spare = memory_budget - len(answer_ids)
-        window_start = max(0, min(
-            answer_start - spare // 2,
-            len(memory_ids) - memory_budget,
-        ))
-        memory_ids = memory_ids[window_start:window_start + memory_budget]
+    if memory_budget < 0:
+        raise ValueError("question does not fit in the configured context")
+    memory_ids = memory_ids[:memory_budget]
     fitted_memory = tokenizer.decode(memory_ids)
-    prompt = f"M:{fitted_memory}\nQ:{question}\nA:"
+    prompt = f"M:{fitted_memory}\\nQ:{question}\\nA:"
     if len(tokenizer.encode(prompt)) > block_size:
         raise ValueError("unable to fit QA prompt into configured context")
     return prompt
+
 
 def evaluate(model, cases, device, block_size):
     """Evaluate only extractive cases and explicitly count unscorable paraphrases."""
     tokenizer = ByteTokenizer()
     results = []
     skipped_missing_answer = 0
+    skipped_outside_context = 0
     model.eval()
     with torch.no_grad():
         for case in cases:
@@ -148,18 +135,16 @@ def evaluate(model, cases, device, block_size):
             if not memories:
                 raise ValueError("each evaluation case needs at least one memory")
             try:
-                prompt = fit_memory_prompt(
-                    case["question"], memories[0], case["expected_answer"],
-                    block_size, tokenizer,
+                prompt = fit_memory_prompt(case["question"], memories[0], block_size, tokenizer)
+                ids, start, end, query_position, memory_end = locate_answer_span(
+                    prompt, case["expected_answer"], tokenizer
                 )
             except ValueError as error:
                 if "answer span is not present" not in str(error):
                     raise
                 skipped_missing_answer += 1
+                skipped_outside_context += 1
                 continue
-            ids, start, end, query_position, memory_end = locate_answer_span(
-                prompt, case["expected_answer"], tokenizer
-            )
             input_ids = torch.tensor([ids], dtype=torch.long, device=device)
             _, _, attention = model(input_ids, return_copy_attention=True)
             scores = score_answer_span(
@@ -173,11 +158,13 @@ def evaluate(model, cases, device, block_size):
     return {
         "examples": count,
         "skipped_missing_answer_span": skipped_missing_answer,
+        "skipped_answer_outside_answer_independent_context": skipped_outside_context,
         "mean_gold_span_mass": sum(row["gold_span_mass"] for row in results) / count,
         "top_span_accuracy": sum(row["top_span_match"] for row in results) / count,
         "mean_gold_span_rank": sum(row["gold_span_rank"] for row in results) / count,
         "mean_candidate_spans": sum(row["candidate_spans"] for row in results) / count,
-        "rank_protocol": "gold byte length is supplied to define candidate windows; this is a span-localization diagnostic, not answer-length-free extraction",
+        "context_protocol": "answer-independent deterministic head truncation; answers outside the retained prefix are skipped",
+        "rank_protocol": "gold byte length is supplied to define candidate windows; this remains a span-localization diagnostic, not answer-length-free extraction",
         "per_case": results,
     }
 

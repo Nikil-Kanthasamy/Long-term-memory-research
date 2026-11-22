@@ -27,7 +27,7 @@ The training facts and held-out QA facts are separately authored. The held-out q
 
 This is a **span-localization diagnostic**, not a general extraction or answer-generation result:
 
-- The evaluator supplies the expected answer to find and preserve its span when fitting a long memory passage into the model's 128-byte context. This is oracle, answer-conditioned cropping; a deployed retriever cannot use the expected answer.
+- In this recorded run, the evaluator supplied the expected answer to find and preserve its span when fitting a long memory passage into the model's 128-byte context. This was oracle, answer-conditioned cropping; a deployed retriever cannot use the expected answer.
 - Candidate windows are defined using the gold answer's byte length. The model is not asked to predict answer boundaries or answer length.
 - The 4 non-extractive held-out rows are excluded from span metrics. Reported span metrics therefore describe the 60 scorable rows, not all 64.
 - The evaluation is synthetic and small. It does not establish performance on natural conversations or real user memories.
@@ -71,3 +71,10 @@ The full workflow artifact is attached to [run 44901506551](https://github.com/N
 ## Next experiment
 
 The next useful test is to remove both oracle conveniences: use a realistic, answer-independent truncation/retrieval policy and predict span boundaries without supplying gold answer length. Evaluate at the fact-cluster level and report confidence intervals. Only after that should this be treated as a candidate extractive memory component. A separate generation objective and exact-answer evaluation are still required before calling the system a useful memory-augmented assistant.
+
+
+## Follow-up evaluation correction (not yet benchmarked)
+
+The span-copy evaluator has since been changed to use deterministic, answer-independent head truncation: it keeps the earliest memory bytes that fit before appending the question. It no longer searches for the expected answer or shifts the context window to preserve it. Answers outside the retained prefix are skipped and counted rather than being rescued by oracle cropping. This is a protocol correction; the metrics above belong to the earlier oracle-cropped run and must not be attributed to the corrected evaluator.
+
+One oracle remains: candidate span windows are still ranked using the gold answer byte length. A future boundary-prediction head must remove that final answer-length hint before this can be described as answer-length-free extraction.
