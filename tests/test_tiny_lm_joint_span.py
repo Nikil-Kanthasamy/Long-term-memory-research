@@ -45,8 +45,15 @@ class TinyLMJointSpanTests(unittest.TestCase):
         self.assertEqual(penalized["predicted_end_inclusive"], 1)
 
     def test_negative_span_width_penalty_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "non-negative"):
+        with self.assertRaisesRegex(ValueError, "finite and non-negative"):
             score_joint_span(torch.zeros(1, 3, 3), 0, 0, span_width_penalty=-0.1)
+
+    def test_non_finite_span_width_penalties_are_rejected(self):
+        logits = torch.zeros(1, 3, 3)
+        for penalty in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(penalty=penalty):
+                with self.assertRaisesRegex(ValueError, "finite and non-negative"):
+                    score_joint_span(logits, 0, 0, span_width_penalty=penalty)
 
     def test_joint_scoring_is_answer_length_free(self):
         logits = torch.full((1, 5, 5), -10.0)
