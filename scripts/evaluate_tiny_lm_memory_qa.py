@@ -54,6 +54,32 @@ def contains_normalized_answer(text, expected_answer):
     )
 
 
+def accepted_answer_references(case):
+    """Return curated acceptable phrasings, always including the canonical answer.
+
+    These aliases are a deterministic rubric, not an automatic semantic judge.
+    """
+    canonical = case["expected_answer"]
+    aliases = case.get("accepted_answers", [canonical])
+    if not isinstance(aliases, list) or not aliases:
+        raise ValueError("accepted_answers must be a non-empty list of strings")
+    if not all(isinstance(value, str) and value.strip() for value in aliases):
+        raise ValueError("accepted_answers must contain only non-empty strings")
+    if normalize(canonical) not in {normalize(value) for value in aliases}:
+        raise ValueError("accepted_answers must include expected_answer")
+    return aliases
+
+
+def contains_any_accepted_answer(text, accepted_answers):
+    """Match any curated accepted phrasing using complete normalized token spans."""
+    return any(contains_normalized_answer(text, answer) for answer in accepted_answers)
+
+
+def max_accepted_token_f1(prediction, accepted_answers):
+    """Best token-set F1 against curated accepted phrasings; not semantic scoring."""
+    return max((token_f1(prediction, answer) for answer in accepted_answers), default=0.0)
+
+
 def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=2000, seed=2026):
     """Paired cluster bootstrap for condition-minus-baseline metric differences.
 
@@ -103,9 +129,10 @@ def cluster_bootstrap_delta(results, condition, baseline, metric, *, replicates=
 
 
 def retrieval_contains_expected(retrieved, expected_answer):
-    """Check whether retrieved evidence contains the complete normalized answer."""
+    """Check for a canonical answer or any curated acceptable phrasing in evidence."""
+    accepted = expected_answer if isinstance(expected_answer, list) else [expected_answer]
     return any(
-        contains_normalized_answer(item.get("content", ""), expected_answer)
+        contains_any_accepted_answer(item.get("content", ""), accepted)
         for item in retrieved
     )
 
@@ -125,6 +152,7 @@ def load_cases(path):
             raise ValueError(f"line {number}: question must be a non-empty string")
         if not isinstance(expected_answer, str) or not expected_answer.strip():
             raise ValueError(f"line {number}: expected_answer must be a non-empty string")
+        accepted_answer_references(item)
         case_id = item.get("id")
         if case_id is not None:
             if not isinstance(case_id, str) or not case_id.strip():
@@ -269,11 +297,13 @@ def main():
                 model, tokenizer, prompt, case["expected_answer"], device
             )
             answer = generate_answer(model, tokenizer, prompt, args.max_new_tokens, device)
-            matched = contains_normalized_answer(answer, case["expected_answer"])
+            accepted_answers = accepted_answer_references(case)
+            matched = contains_any_accepted_answer(answer, accepted_answers)
             condition_results[condition] = {
                 "answer": answer,
                 "matched": matched,
-                "token_f1": token_f1(answer, case["expected_answer"]),
+                "token_f1": max_accepted_token_f1(answer, accepted_answers),
+                "accepted_answer_match": matched,
                 "gold_answer_score": expected_score,
             }
         results.append({
@@ -281,12 +311,13 @@ def main():
             "fact_cluster_id": case.get("fact_cluster_id", case.get("id", str(index))),
             "question": case["question"],
             "expected_answer": case["expected_answer"],
+            "accepted_answers": accepted_answer_references(case),
             "retrieved_memory_count": len(retrieved),
-            "retrieval_hit": retrieval_contains_expected(retrieved, case["expected_answer"]),
+            "retrieval_hit": retrieval_contains_expected(retrieved, accepted_answer_references(case)),
             "irrelevant_memory_source": distractor_source if distractor_memories else None,
             "retrieval_only_evidence": {
                 "evidence": retrieval_only_evidence(retrieved),
-                "matched": retrieval_contains_expected(retrieved, case["expected_answer"]),
+                "matched": retrieval_contains_expected(retrieved, accepted_answer_references(case)),
             },
             **condition_results,
         })
@@ -382,7 +413,7 @@ def main():
         "limitations": [
             "Synthetic evaluation facts are manually authored; results do not establish performance on real user memories.",
             "Fact-cluster bootstrap resamples independent fact clusters, not paraphrase rows; intervals remain exploratory for this small synthetic benchmark.",
-            "Generation exact-match scoring requires a complete contiguous sequence of normalized answer tokens; paraphrases may still be marked wrong. Mean token-set F1 is also reported as a partial-overlap diagnostic, not semantic judging.",
+            "Generation matching accepts the canonical expected_answer or one of the manually curated accepted_answers using complete contiguous normalized token spans. This is a deterministic alias rubric, not an automatic semantic judge; unlisted valid paraphrases may still be marked wrong. Mean token-set F1 is reported against the best alias as a partial-overlap diagnostic, not semantic judging.",
             "Retrieval hit checks literal gold-answer presence in retrieved text, not semantic evidence quality.",
             "A model that generates gibberish may score zero even when retrieval succeeds.",
             "retrieval_only_evidence is a diagnostic evidence-exposure baseline, not a generated natural-language answer.",
