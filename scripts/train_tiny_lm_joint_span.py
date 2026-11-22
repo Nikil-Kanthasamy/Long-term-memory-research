@@ -88,11 +88,16 @@ def score_joint_span(pair_logits, start, end, span_width_penalty=0.0):
     }
 
 
+def memory_keys_from_hidden(hidden, memory_end):
+    """Use position-aware contextual states, not repeated raw byte embeddings."""
+    return hidden[:, 2:memory_end, :]
+
+
 def _logits(model, head, ids, query_position, memory_end, device):
     input_ids = torch.tensor([ids], dtype=torch.long, device=device)
     _, _, hidden = model(input_ids, return_hidden=True)
     query = hidden[:, query_position:query_position + 1, :]
-    keys = model.token_embedding(input_ids[:, 2:memory_end])
+    keys = memory_keys_from_hidden(hidden, memory_end)
     start, end, pair = head(query, keys)
     return start, end, pair
 
