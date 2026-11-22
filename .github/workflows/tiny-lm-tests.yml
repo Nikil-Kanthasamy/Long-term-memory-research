@@ -99,6 +99,10 @@ jobs:
         run: |
           set -o pipefail
           python scripts/train_tiny_lm_joint_span.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --output-checkpoint models/tiny-memory-lm-copy/joint-span.pt --eval-cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --output copy-joint-span-evaluation.json --steps 600 --batch-size 4 --device cpu | tee copy-joint-span-training.log
+      - name: Replicate answer-length-free joint span selection across random seeds
+        run: |
+          set -o pipefail
+          python scripts/run_tiny_lm_joint_span_seeds.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --eval-cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --output-dir joint-span-seed-sweep --seeds 13 29 47 --steps 600 --batch-size 4 --device cpu | tee joint-span-seed-sweep.log
       - name: Upload pilot checkpoint and evaluation
         uses: actions/upload-artifact@v4
         with:
@@ -132,4 +136,6 @@ jobs:
             models/tiny-memory-lm-copy/joint-span.pt
             copy-joint-span-training.log
             copy-joint-span-evaluation.json
+            joint-span-seed-sweep/
+            joint-span-seed-sweep.log
           retention-days: 30
