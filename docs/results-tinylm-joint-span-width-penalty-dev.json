@@ -1,0 +1,289 @@
+{
+  "protocol": "CPU post-hoc decoder-only sweep on held-out dev; no training updates",
+  "seed_results": [
+    {
+      "seed": 13,
+      "results": [
+        {
+          "penalty": 0,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 111
+        },
+        {
+          "penalty": 0.1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 106.875
+        },
+        {
+          "penalty": 0.2,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 126.3125
+        },
+        {
+          "penalty": 0.4,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 160.5
+        },
+        {
+          "penalty": 0.6,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 197.875
+        },
+        {
+          "penalty": 0.8,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.125,
+          "mean_rank": 228.9375
+        },
+        {
+          "penalty": 1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.0625,
+          "mean_rank": 248.4375
+        }
+      ]
+    },
+    {
+      "seed": 29,
+      "results": [
+        {
+          "penalty": 0,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 136.9375
+        },
+        {
+          "penalty": 0.1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 128.625
+        },
+        {
+          "penalty": 0.2,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 140.625
+        },
+        {
+          "penalty": 0.4,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 169.8125
+        },
+        {
+          "penalty": 0.6,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 196.5
+        },
+        {
+          "penalty": 0.8,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.25,
+          "mean_rank": 224.75
+        },
+        {
+          "penalty": 1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.0625,
+          "mean_rank": 244.375
+        }
+      ]
+    },
+    {
+      "seed": 47,
+      "results": [
+        {
+          "penalty": 0,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 85.875
+        },
+        {
+          "penalty": 0.1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 103.5625
+        },
+        {
+          "penalty": 0.2,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 130.625
+        },
+        {
+          "penalty": 0.4,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.375,
+          "mean_rank": 184.3125
+        },
+        {
+          "penalty": 0.6,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.3125,
+          "mean_rank": 228.5625
+        },
+        {
+          "penalty": 0.8,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.125,
+          "mean_rank": 254.9375
+        },
+        {
+          "penalty": 1,
+          "examples": 16,
+          "skipped": 0,
+          "exact": 0.125,
+          "mean_rank": 270.375
+        }
+      ]
+    }
+  ],
+  "aggregate": [
+    {
+      "penalty": 0,
+      "mean_exact": 0.375,
+      "mean_rank": 111.27083333333333,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 0.1,
+      "mean_exact": 0.375,
+      "mean_rank": 113.02083333333333,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 0.2,
+      "mean_exact": 0.375,
+      "mean_rank": 132.52083333333334,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 0.4,
+      "mean_exact": 0.375,
+      "mean_rank": 171.54166666666666,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 0.6,
+      "mean_exact": 0.3541666666666667,
+      "mean_rank": 207.64583333333334,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 0.8,
+      "mean_exact": 0.16666666666666666,
+      "mean_rank": 236.20833333333334,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "penalty": 1,
+      "mean_exact": 0.08333333333333333,
+      "mean_rank": 254.39583333333334,
+      "cases_per_seed": [
+        16,
+        16,
+        16
+      ],
+      "skipped_per_seed": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "selected": {
+    "penalty": 0,
+    "mean_exact": 0.375,
+    "mean_rank": 111.27083333333333,
+    "cases_per_seed": [
+      16,
+      16,
+      16
+    ],
+    "skipped_per_seed": [
+      0,
+      0,
+      0
+    ]
+  }
+}
