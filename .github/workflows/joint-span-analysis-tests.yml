@@ -1,0 +1,23 @@
+name: joint-span analysis tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/long-term-memory-starter"]
+    paths:
+      - "scripts/analyze_tiny_lm_joint_span_errors.py"
+      - "tests/test_tiny_lm_joint_span_error_analysis.py"
+      - ".github/workflows/joint-span-analysis-tests.yml"
+
+jobs:
+  analysis-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run offline analysis utility tests
+        run: python -m unittest discover -s tests -p 'test_tiny_lm_joint_span_error_analysis.py' -v
+      - name: Check analyzer CLI
+        run: python scripts/analyze_tiny_lm_joint_span_errors.py --help
