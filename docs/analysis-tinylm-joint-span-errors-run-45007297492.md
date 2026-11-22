@@ -66,3 +66,8 @@ python -m unittest discover -s tests -p 'test_tiny_lm_joint_span_error_analysis.
 ```
 
 The analyzer and its tests are post-processing utilities; they do not retrain the model or tune any parameter against the evaluation set. The newly added signed-error test cases were checked against the helper logic, but a repository CI run has not yet been triggered for these post-processing-only files.
+
+
+## Lightweight CI
+
+A separate workflow, `.github/workflows/joint-span-analysis-tests.yml`, now runs only the offline analyzer unit tests and CLI help check when the analyzer, its tests, or the workflow itself changes. This keeps diagnostic validation separate from the expensive model-training workflow. The workflow file is committed; no Actions run was returned for its introducing commit, so its first execution is still pending.
