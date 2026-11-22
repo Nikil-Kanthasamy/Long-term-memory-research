@@ -64,7 +64,7 @@ def main():
         "joint_exact_span_accuracy_max": max(accuracies),
     }
     summary_path = output_dir / "joint-span-seed-summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
 
 
