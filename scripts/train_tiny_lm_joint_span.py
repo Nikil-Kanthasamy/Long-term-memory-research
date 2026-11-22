@@ -62,9 +62,18 @@ def joint_span_loss(pair_logits, start_target, end_target):
     return F.cross_entropy(pair_logits.flatten(1), target)
 
 
-def score_joint_span(pair_logits, start, end):
-    scores = mask_invalid_spans(pair_logits).detach().float().flatten()
-    target = start * pair_logits.size(-1) + end
+def score_joint_span(pair_logits, start, end, span_width_penalty=0.0):
+    """Rank spans after an optional fixed per-byte penalty for wider spans."""
+    if span_width_penalty < 0:
+        raise ValueError("span_width_penalty must be non-negative")
+    adjusted = mask_invalid_spans(pair_logits).detach().float()
+    length = adjusted.size(-1)
+    starts = torch.arange(length, device=adjusted.device).unsqueeze(1)
+    ends = torch.arange(length, device=adjusted.device).unsqueeze(0)
+    widths = (ends - starts + 1).clamp_min(1)
+    adjusted = adjusted - span_width_penalty * widths
+    scores = adjusted.flatten()
+    target = start * length + end
     order = torch.argsort(scores, descending=True)
     rank = int((order == target).nonzero(as_tuple=True)[0].item()) + 1
     predicted = int(scores.argmax().item())
