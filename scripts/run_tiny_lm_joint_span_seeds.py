@@ -56,7 +56,7 @@ def main():
 
     accuracies = [row["joint_exact_span_accuracy"] for row in rows]
     summary = {
-        "protocol": "same frozen copy-enabled base checkpoint; independent joint-head initialization per seed; no gold answer length",
+        "protocol": "same copy-enabled base checkpoint initialization per seed; language model and joint-span head both fine-tuned; independent head initialization; no gold answer length",
         "seeds": args.seeds,
         "runs": rows,
         "joint_exact_span_accuracy_mean": sum(accuracies) / len(accuracies),
