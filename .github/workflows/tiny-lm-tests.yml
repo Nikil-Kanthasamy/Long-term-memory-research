@@ -30,6 +30,7 @@ on:
       - "scripts/prepare_wikitext.py"
       - "requirements-tiny-lm-data.txt"
       - "examples/tiny_lm_memory_qa_unseen_facts.jsonl"
+      - "examples/tiny_lm_memory_qa_paraphrase_alias_eval.jsonl"
 
 jobs:
   tiny-lm:
@@ -71,6 +72,8 @@ jobs:
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-qa-eval.sqlite3 --output memory-qa-evaluation.json --max-new-tokens 32
       - name: Evaluate byte model on unseen memory facts
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-unseen-qa-eval.sqlite3 --output unseen-memory-qa-evaluation.json --max-new-tokens 32
+      - name: Evaluate byte model on curated paraphrase aliases
+        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm/instruct.pt --cases examples/tiny_lm_memory_qa_paraphrase_alias_eval.jsonl --database /tmp/tiny-lm-paraphrase-alias-eval.sqlite3 --output paraphrase-alias-evaluation.json --max-new-tokens 32
       - name: Train from-scratch BPE model on WikiText-2 training split
         run: |
           python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm-bpe --tokenizer bpe --vocab-size 512 --steps 1000 --batch-size 8 --block-size 128 --d-model 128 --layers 2 --heads 4 --eval-interval 100 --device cpu | tee bpe-training.log
@@ -82,6 +85,8 @@ jobs:
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-bpe-qa-eval.sqlite3 --output bpe-memory-qa-evaluation.json --max-new-tokens 32
       - name: Evaluate BPE model on unseen memory facts
         run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-bpe-unseen-qa-eval.sqlite3 --output bpe-unseen-memory-qa-evaluation.json --max-new-tokens 32
+      - name: Evaluate BPE model on curated paraphrase aliases
+        run: python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-bpe/instruct.pt --cases examples/tiny_lm_memory_qa_paraphrase_alias_eval.jsonl --database /tmp/tiny-lm-bpe-paraphrase-alias-eval.sqlite3 --output bpe-paraphrase-alias-evaluation.json --max-new-tokens 32
       - name: Train byte model with causal pointer copy head
         run: |
           python scripts/train_tiny_lm.py --input data/wikitext-2/train.txt --validation-input data/wikitext-2/validation.txt --output-dir models/tiny-memory-lm-copy --steps 1000 --batch-size 8 --block-size 128 --d-model 128 --layers 2 --heads 4 --copy-mechanism --eval-interval 100 --device cpu | tee copy-training.log
@@ -91,6 +96,7 @@ jobs:
         run: |
           python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_eval.jsonl --database /tmp/tiny-lm-copy-qa-eval.sqlite3 --output copy-memory-qa-evaluation.json --max-new-tokens 32
           python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_unseen_facts.jsonl --database /tmp/tiny-lm-copy-unseen-qa-eval.sqlite3 --output copy-unseen-memory-qa-evaluation.json --max-new-tokens 32
+          python scripts/evaluate_tiny_lm_memory_qa.py --checkpoint models/tiny-memory-lm-copy/instruct.pt --cases examples/tiny_lm_memory_qa_paraphrase_alias_eval.jsonl --database /tmp/tiny-lm-copy-paraphrase-alias-eval.sqlite3 --output copy-paraphrase-alias-evaluation.json --max-new-tokens 32
       - name: Supervise answer-span selection in retrieved memory
         run: |
           set -o pipefail
@@ -128,12 +134,15 @@ jobs:
             bpe-instruction-tuning.log
             bpe-memory-qa-evaluation.json
             unseen-memory-qa-evaluation.json
+            paraphrase-alias-evaluation.json
             bpe-unseen-memory-qa-evaluation.json
+            bpe-paraphrase-alias-evaluation.json
             models/tiny-memory-lm-copy/*.pt
             copy-training.log
             copy-instruction-tuning.log
             copy-memory-qa-evaluation.json
             copy-unseen-memory-qa-evaluation.json
+            copy-paraphrase-alias-evaluation.json
             models/tiny-memory-lm-copy/span-copy.pt
             copy-span-training.log
             copy-span-unseen-evaluation.json
