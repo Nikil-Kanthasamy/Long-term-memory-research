@@ -52,5 +52,6 @@ jobs:
           training_values = {value for _, value in FACTS}
           assert not ({row['expected_answer'] for row in dev} & training_values)
           assert all(row['expected_answer'] in row['memories'][0] for row in dev)
-          print(f'Validated {len(dev)} dev questions across {len(set(row[\"fact_cluster_id\"] for row in dev))} held-out fact clusters; no overlap with final-test clusters or training answer values.')
+          cluster_count = len({row['fact_cluster_id'] for row in dev})
+          print('Validated {} dev questions across {} held-out fact clusters; no overlap with final-test clusters or training answer values.'.format(len(dev), cluster_count))
           PY
