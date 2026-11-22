@@ -484,5 +484,26 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         load_cases(path)
 
+
+    def test_paraphrase_alias_fixture_has_balanced_fact_clusters_and_curated_rubrics(self):
+        from scripts.evaluate_tiny_lm_memory_qa import load_cases, accepted_answer_references
+        cases = load_cases("examples/tiny_lm_memory_qa_paraphrase_alias_eval.jsonl")
+        self.assertEqual(len(cases), 16)
+        clusters = {}
+        for case in cases:
+            clusters.setdefault(case["fact_cluster_id"], []).append(case)
+            aliases = accepted_answer_references(case)
+            self.assertGreaterEqual(len(aliases), 2)
+            self.assertIn(case["expected_answer"], aliases)
+            self.assertTrue(case["memories"])
+            self.assertTrue(case["irrelevant_memories"])
+        self.assertEqual(len(clusters), 8)
+        self.assertTrue(all(len(rows) == 2 for rows in clusters.values()))
+        self.assertTrue(all(
+            rows[0]["expected_answer"] == rows[1]["expected_answer"]
+            and rows[0]["memories"] == rows[1]["memories"]
+            for rows in clusters.values()
+        ))
+
 if __name__ == "__main__":
     unittest.main()
