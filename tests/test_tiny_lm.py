@@ -479,7 +479,7 @@ class TinyLMSupervisedTuningTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "cases.jsonl"
             for case in invalid:
-                path.write_text(json.dumps(case) + "\\n", encoding="utf-8")
+                path.write_text(json.dumps(case) + "\n", encoding="utf-8")
                 with self.subTest(case=case):
                     with self.assertRaises(ValueError):
                         load_cases(path)
