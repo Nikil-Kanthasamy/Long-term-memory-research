@@ -1,8 +1,10 @@
 # Joint-span width-penalty sweep (development only)
 
-**Status:** completed on CPU; no training or optimizer updates were performed.
+**Status:** completed with a local CPU evaluation harness; no training or optimizer updates were performed. The harness reimplemented the checked-in model, prompt-fitting, joint-span scoring, and rank calculations against the saved checkpoint tensors. The checked-in CLI itself has not yet been independently exercised in GitHub Actions.
 
 ## Protocol
+
+The source repository could not be cloned into the execution environment, so the sweep used a temporary local harness rather than invoking the checked-in CLI. The harness loaded the three saved PyTorch checkpoint payloads and mirrored the current implementation's byte model, joint-span head, answer-independent prompt truncation, and per-byte width adjustment. Treat these numbers as a local reproduction pending an Actions run of the checked-in CLI.
 
 - Checkpoints: the three joint-span seed checkpoints (13, 29, 47) from workflow run 45007297492.
 - Development set: `examples/tiny_lm_memory_qa_dev_facts.jsonl` — 16 cases across 8 held-out fact clusters.
