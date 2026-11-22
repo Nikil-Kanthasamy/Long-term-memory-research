@@ -1,6 +1,7 @@
 """Sweep fixed span-width penalties over a held-out development set; performs no training."""
 import argparse
 import json
+import math
 from pathlib import Path
 
 import torch
@@ -18,8 +19,8 @@ def main():
     parser.add_argument("--output", default="joint-span-width-penalty-sweep.json")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     args = parser.parse_args()
-    if not args.penalties or any(value < 0 for value in args.penalties):
-        parser.error("penalties must be a non-empty list of non-negative values")
+    if not args.penalties or any(not math.isfinite(value) or value < 0 for value in args.penalties):
+        parser.error("penalties must be a non-empty list of finite, non-negative values")
     if args.device == "cuda" and not torch.cuda.is_available():
         parser.error("CUDA requested but unavailable")
 
