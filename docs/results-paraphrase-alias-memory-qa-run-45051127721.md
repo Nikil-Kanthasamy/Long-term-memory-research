@@ -16,7 +16,7 @@ All three models retrieved evidence containing an accepted answer in 16/16 cases
 | BPE | 0/16 | 0.0970 | 4.3812 | 3.8956 | -0.4856 |
 | Byte + pointer-copy | 0/16 | 0.0509 | 3.6326 | 3.2301 | -0.4026 |
 
-For context, irrelevant-memory mean gold-answer NLL changes relative to no-memory were +0.1911 nats for byte, -0.1137 for BPE, and -0.1853 for byte + pointer-copy. These are teacher-forced likelihood measurements, not generated-answer accuracy.
+For context, irrelevant-memory mean gold-answer NLL changes relative to no-memory were -0.1911 nats for byte, -0.1137 for BPE, and -0.1853 for byte + pointer-copy. These are teacher-forced likelihood measurements, not generated-answer accuracy.
 
 ## Interpretation
 
