@@ -35,6 +35,8 @@ on:
       - "scripts/build_longmemeval_span_eval.py"
       - "tests/test_longmemeval_span_eval.py"
       - "scripts/download_longmemeval.py"
+      - "scripts/build_longmemeval_retrieval_eval.py"
+      - "tests/test_longmemeval_retrieval_eval.py"
 
 jobs:
   tiny-lm:
@@ -130,6 +132,8 @@ jobs:
           python scripts/run_tiny_lm_joint_span_seeds.py --input /tmp/tiny-lm-memory-grounding-sft.jsonl --checkpoint models/tiny-memory-lm-copy/best.pt --eval-cases examples/tiny_lm_memory_qa_independent_paraphrase_eval.jsonl --output-dir independent-paraphrase-joint-span-seed-sweep --seeds 13 29 47 --steps 600 --batch-size 4 --device cpu | tee independent-paraphrase-joint-span-seed-sweep.log
       - name: Download official LongMemEval S dataset
         run: python scripts/download_longmemeval.py --variant s
+      - name: Build full-session LongMemEval retrieval benchmark
+        run: python scripts/build_longmemeval_retrieval_eval.py --input data/longmemeval_s_cleaned.json --output-cases longmemeval-retrieval-cases.jsonl --output-summary longmemeval-retrieval-summary.json
       - name: Build oracle-evidence extractive span subset
         run: |
           python scripts/build_longmemeval_span_eval.py --input data/longmemeval_s_cleaned.json --output longmemeval-span-eval.jsonl --summary longmemeval-span-eval-build-summary.json --block-size 128
@@ -185,4 +189,6 @@ jobs:
             longmemeval-span-eval-build-summary.json
             longmemeval-oracle-span-seed-sweep/
             longmemeval-oracle-span-seed-sweep.log
+            longmemeval-retrieval-cases.jsonl
+            longmemeval-retrieval-summary.json
           retention-days: 30
