@@ -6,6 +6,12 @@ on:
       - research/long-term-memory-starter
     paths:
       - .github/workflows/longmemeval-retrieval.yml
+      - src/ltm/cli.py
+      - src/ltm/longmemeval.py
+      - src/ltm/store.py
+      - scripts/download_longmemeval.py
+      - scripts/build_longmemeval_retrieval_eval.py
+      - tests/test_longmemeval_retrieval_eval.py
   workflow_dispatch:
     inputs:
       limit:
