@@ -94,9 +94,18 @@ def rank_jaccard(question, turns):
     return ranked
 
 
-def rank_bm25(question, turns, k1=1.5, b=0.75):
-    query_terms = set(terms(question))
-    tokenized = [terms(turn["text"]) for turn in turns]
+# Fixed exploratory list; keep separate from the primary BM25 tokenizer.
+BM25_ABLATION_STOPWORDS = frozenset("""
+what was the i my a an is did do of in on to for me you and or it that
+one how many which who when where from with about ago have has had
+mentioned tell can
+""".split())
+
+
+def rank_bm25(question, turns, k1=1.5, b=0.75, stopwords=frozenset()):
+    query_terms = set(terms(question)) - stopwords
+    tokenized = [ [term for term in terms(turn["text"]) if term not in stopwords]
+                  for turn in turns]
     count = len(tokenized)
     average_length = sum(map(len, tokenized)) / count if count else 0.0
     document_frequency = Counter(term for tokens in tokenized for term in set(tokens))
@@ -245,6 +254,15 @@ def main():
     ks = tuple(sorted(set((1, 3, 5, args.k))))
     jaccard = evaluate_turn_retrieval(cases, rank_jaccard, ks)
     bm25 = evaluate_turn_retrieval(cases, rank_bm25, ks)
+    # Exploratory, fixed-list stopword ablation. This is not the primary model
+    # and the list was selected after inspecting this benchmark's failure cases.
+    bm25_stopword_ablation = evaluate_turn_retrieval(
+        cases,
+        lambda question, turns: rank_bm25(
+            question, turns, stopwords=BM25_ABLATION_STOPWORDS
+        ),
+        ks,
+    )
     # Controlled BM25 sensitivity sweep. Keep the default run as the primary
     # baseline; these variants change one parameter at a time.
     bm25_parameter_sweep = {}
@@ -281,13 +299,14 @@ def main():
         "build": build_summary,
         "retrieval_jaccard": jaccard,
         "retrieval_bm25": bm25,
+        "retrieval_bm25_stopword_ablation": bm25_stopword_ablation,
         "bm25_parameter_sweep": bm25_parameter_sweep,
         "bm25_failure_analysis": build_failure_analysis(cases, bm25),
         "warning": "Turn-level evidence retrieval only. Labels are benchmark has_answer flags; this is not answer generation or semantic correctness. Metrics are averaged over eligible answerable questions.",
     }
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"build": build_summary, "retrieval_jaccard": jaccard["metrics"],
-                      "retrieval_bm25": bm25["metrics"]}, sort_keys=True))
+                      "retrieval_bm25": bm25["metrics"],\n                      "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"]}, sort_keys=True))
 
 
 if __name__ == "__main__":
