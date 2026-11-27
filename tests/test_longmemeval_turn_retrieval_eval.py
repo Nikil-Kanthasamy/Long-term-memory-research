@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.build_longmemeval_turn_retrieval_eval import (
-    build_failure_analysis, build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard,
+    BM25_ABLATION_STOPWORDS, build_failure_analysis, build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard,
 )
 
 
@@ -67,6 +67,22 @@ class LongMemEvalTurnRetrievalTests(unittest.TestCase):
         with_length_normalization = rank_bm25("apple", turns, b=1.0)
         self.assertEqual(without_length_normalization[0][1], "0:0")
         self.assertEqual(with_length_normalization[0][1], "0:1")
+
+
+    def test_stopword_ablation_is_explicit_and_does_not_change_default_bm25(self):
+        turns = [
+            {"turn_id": "0:0", "text": "what was the location of the museum", "relevant": False},
+            {"turn_id": "0:1", "text": "museum", "relevant": True},
+        ]
+        baseline = rank_bm25("what was the museum", turns)
+        explicit_default = rank_bm25("what was the museum", turns, stopwords=frozenset())
+        ablated = rank_bm25(
+            "what was the museum", turns, stopwords=BM25_ABLATION_STOPWORDS
+        )
+        self.assertEqual(baseline, explicit_default)
+        self.assertIn("what", BM25_ABLATION_STOPWORDS)
+        self.assertNotIn("museum", BM25_ABLATION_STOPWORDS)
+        self.assertEqual(len(ablated), 2)
 
     def test_retrieval_ranks_gold_turn_and_reports_recall(self):
         cases, _ = build_turn_cases(self.fixture())
