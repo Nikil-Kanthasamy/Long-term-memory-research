@@ -101,6 +101,10 @@ one how many which who when where from with about ago have has had
 mentioned tell can
 """.split())
 
+# Conservative, predeclared generic-word ablation. Temporal, relational,
+# interrogative, possessive, and action terms from the broader list are kept.
+BM25_SELECTIVE_STOPWORDS = frozenset({"a", "an", "the", "and", "or", "of"})
+
 
 def rank_bm25(question, turns, k1=1.5, b=0.75, stopwords=frozenset()):
     query_terms = set(terms(question)) - stopwords
@@ -263,6 +267,14 @@ def main():
         ),
         ks,
     )
+    # Narrow selective ablation: remove only articles/conjunctions and "of".
+    bm25_selective_stopword_ablation = evaluate_turn_retrieval(
+        cases,
+        lambda question, turns: rank_bm25(
+            question, turns, stopwords=BM25_SELECTIVE_STOPWORDS
+        ),
+        ks,
+    )
     # Controlled BM25 sensitivity sweep. Keep the default run as the primary
     # baseline; these variants change one parameter at a time.
     bm25_parameter_sweep = {}
@@ -300,6 +312,12 @@ def main():
         "retrieval_jaccard": jaccard,
         "retrieval_bm25": bm25,
         "retrieval_bm25_stopword_ablation": bm25_stopword_ablation,
+        "retrieval_bm25_selective_stopword_ablation": bm25_selective_stopword_ablation,
+        "selective_stopword_policy": {
+            "removed_terms": sorted(BM25_SELECTIVE_STOPWORDS),
+            "preserved_cue_families": "temporal, relational, interrogative, possessive, and action terms",
+            "status": "exploratory; defined before rerunning previously inspected benchmarks; not held-out validation",
+        },
         "bm25_parameter_sweep": bm25_parameter_sweep,
         "bm25_failure_analysis": build_failure_analysis(cases, bm25),
         "warning": "Turn-level evidence retrieval only. Labels are benchmark has_answer flags; this is not answer generation or semantic correctness. Metrics are averaged over eligible answerable questions.",
@@ -307,7 +325,8 @@ def main():
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"build": build_summary, "retrieval_jaccard": jaccard["metrics"],
                       "retrieval_bm25": bm25["metrics"],
-                      "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"]}, sort_keys=True))
+                      "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"],
+                      "retrieval_bm25_selective_stopword_ablation": bm25_selective_stopword_ablation["metrics"]}, sort_keys=True))
 
 
 if __name__ == "__main__":
