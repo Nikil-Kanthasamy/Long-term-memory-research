@@ -36,7 +36,7 @@ def build_retrieval_cases(dataset):
         question = item.get("question")
         sessions = item.get("haystack_sessions")
         session_ids = item.get("haystack_session_ids")
-        evidence = item.get("evidence")
+        evidence = item.get("answer_session_ids", item.get("evidence"))
         if not isinstance(question, str) or not question.strip():
             skipped["invalid_question"] += 1
             continue
