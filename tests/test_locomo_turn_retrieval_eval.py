@@ -6,6 +6,7 @@ from scripts.build_locomo_turn_retrieval_eval import (
 )
 from scripts.build_longmemeval_turn_retrieval_eval import (
     BM25_ABLATION_STOPWORDS,
+    BM25_SELECTIVE_STOPWORDS,
     evaluate_turn_retrieval,
     rank_bm25,
 )
@@ -65,6 +66,14 @@ class LoCoMoRetrievalTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["questions"], 2)
         self.assertGreaterEqual(result["metrics"]["recall_at_5"], 0.0)
         self.assertLessEqual(result["metrics"]["recall_at_5"], 1.0)
+        selective = evaluate_turn_retrieval(
+            cases,
+            lambda question, turns: rank_bm25(
+                question, turns, stopwords=BM25_SELECTIVE_STOPWORDS
+            ),
+            ks=(1, 3, 5, 10),
+        )
+        self.assertEqual(selective["metrics"]["questions"], 2)
 
     def test_paired_summary_reports_question_level_changes(self):
         cases, _ = build_locomo_cases(self.fixture())
