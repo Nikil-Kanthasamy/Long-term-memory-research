@@ -107,7 +107,7 @@ def evaluate(cases, ks=(1, 3, 5, 10), ranker=rank_sessions):
         bucket = per_type.setdefault(case["question_type"], [])
         bucket.append(first)
     count = len(ranks)
-    metrics = {"questions": count, "retrieval_coverage": sum(x is not None for x in ranks) / count if count else 0.0,
+    metrics = {"questions": count, "evidence_availability_in_haystack": sum(x is not None for x in ranks) / count if count else 0.0,
                "mrr": sum(1 / x for x in ranks if x is not None) / count if count else 0.0,
                "median_first_relevant_rank": sorted(x for x in ranks if x is not None)[(sum(x is not None for x in ranks)-1)//2] if any(x is not None for x in ranks) else None}
     for k in ks:
