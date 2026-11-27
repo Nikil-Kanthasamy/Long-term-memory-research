@@ -8,7 +8,7 @@ class LongMemEvalRetrievalTests(unittest.TestCase):
         data = [{
             "question_id": "q1", "question_type": "multi-session",
             "question": "Where did I move?",
-            "evidence": ["s2", "s3"],
+            "answer_session_ids": ["s2", "s3"],
             "haystack_session_ids": ["s1", "s2", "s3"],
             "haystack_sessions": [
                 [{"role": "user", "content": "I like tea."}],
@@ -22,7 +22,7 @@ class LongMemEvalRetrievalTests(unittest.TestCase):
 
     def test_skips_missing_or_unmatched_evidence(self):
         data = [{
-            "question_id": "q", "question": "Where?", "evidence": ["missing"],
+            "question_id": "q", "question": "Where?", "answer_session_ids": ["missing"],
             "haystack_session_ids": ["s1"], "haystack_sessions": [[{"content": "Here."}]],
         }]
         cases, summary = build_retrieval_cases(data)
