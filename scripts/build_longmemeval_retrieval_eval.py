@@ -138,7 +138,7 @@ def main():
     Path(args.output_cases).write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in cases), encoding="utf-8")
     summary = {"build": build_summary, "retrieval_jaccard": results, "retrieval_bm25": evaluate(cases, ranker=rank_sessions_bm25),
                "warning": "Jaccard and BM25 are lexical baselines, not semantic retrievers. Ties are deterministically ordered by session ID; BM25 IDF is computed per question haystack."}
-    Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
+    Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, sort_keys=True))
 
 
