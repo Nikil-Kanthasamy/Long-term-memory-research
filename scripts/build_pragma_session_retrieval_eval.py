@@ -25,6 +25,7 @@ except ModuleNotFoundError:
         evaluate_turn_retrieval,
         rank_bm25,
         rank_jaccard,
+        rank_rrf,
     )
 
 
