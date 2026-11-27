@@ -6,7 +6,7 @@ Only aggregate and per-question retrieval metrics are written to the artifact.
 """
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -36,7 +36,8 @@ QUERY_TYPES = {
 def _parse_time(value):
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Missing timestamp: {value!r}")
-    return datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
 
 
 def _session_text(session):
