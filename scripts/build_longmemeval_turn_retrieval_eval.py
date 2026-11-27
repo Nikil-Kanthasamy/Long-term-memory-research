@@ -245,6 +245,32 @@ def main():
     ks = tuple(sorted(set((1, 3, 5, args.k))))
     jaccard = evaluate_turn_retrieval(cases, rank_jaccard, ks)
     bm25 = evaluate_turn_retrieval(cases, rank_bm25, ks)
+    # Controlled BM25 sensitivity sweep. Keep the default run as the primary
+    # baseline; these variants change one parameter at a time.
+    bm25_parameter_sweep = {}
+    sweep_configs = {
+        "default": (1.5, 0.75),
+        "lower_length_norm": (1.5, 0.25),
+        "no_length_norm": (1.5, 0.0),
+        "higher_length_norm": (1.5, 1.0),
+        "lower_tf_saturation": (0.8, 0.75),
+        "higher_tf_saturation": (2.5, 0.75),
+    }
+    for name, (k1, b) in sweep_configs.items():
+        result = bm25 if name == "default" else evaluate_turn_retrieval(
+            cases,
+            lambda question, turns, k1=k1, b=b: rank_bm25(question, turns, k1=k1, b=b),
+            ks,
+        )
+        bm25_parameter_sweep[name] = {
+            "k1": k1,
+            "b": b,
+            "metrics": result["metrics"],
+            "first_relevant_rank_by_question": {
+                row["question_id"]: row["first_relevant_rank"]
+                for row in result["per_question"]
+            },
+        }
     Path(args.output_cases).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_summary).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_cases).write_text(
@@ -255,6 +281,7 @@ def main():
         "build": build_summary,
         "retrieval_jaccard": jaccard,
         "retrieval_bm25": bm25,
+        "bm25_parameter_sweep": bm25_parameter_sweep,
         "bm25_failure_analysis": build_failure_analysis(cases, bm25),
         "warning": "Turn-level evidence retrieval only. Labels are benchmark has_answer flags; this is not answer generation or semantic correctness. Metrics are averaged over eligible answerable questions.",
     }
