@@ -58,6 +58,16 @@ class LongMemEvalTurnRetrievalTests(unittest.TestCase):
         self.assertIn("Oslo", example["gold_turns"][0]["text"])
         self.assertIn("text", example["top_ranked_turns"][0])
 
+    def test_bm25_length_normalization_parameter_changes_ranking(self):
+        turns = [
+            {"turn_id": "0:0", "text": "apple " + "filler " * 100, "relevant": False},
+            {"turn_id": "0:1", "text": "apple", "relevant": True},
+        ]
+        without_length_normalization = rank_bm25("apple", turns, b=0.0)
+        with_length_normalization = rank_bm25("apple", turns, b=1.0)
+        self.assertEqual(without_length_normalization[0][1], "0:0")
+        self.assertEqual(with_length_normalization[0][1], "0:1")
+
     def test_retrieval_ranks_gold_turn_and_reports_recall(self):
         cases, _ = build_turn_cases(self.fixture())
         for ranker in (rank_jaccard, rank_bm25):
