@@ -94,3 +94,20 @@ A manual workflow is available at **Actions → LongMemEval retrieval benchmark 
 ## Next milestone: end-to-end memory assistant
 
 The repository already has a Gemini client, an optional retrieval-augmented reader, memory extraction/update primitives, SQLite persistence, and a retrieval CLI. The next major milestone is a full end-to-end evaluation: run all 500 questions through BM25 retrieval plus Gemini answer generation, then grade the predictions with the official GPT-4o judge. That requires a Gemini API key and an OpenAI API key (or another approved judge setup). The estimated engineering effort is 2–4 focused days for a first reproducible end-to-end result, then 1–2 weeks for hybrid retrieval, error analysis, and reliability improvements. API execution time and usage charges are additional and depend on the selected models and quotas.
+
+
+## Turn-level evidence retrieval (new benchmark)
+
+The full-session benchmark can find the right conversation while still returning too much irrelevant text to a reader. The companion `scripts/build_longmemeval_turn_retrieval_eval.py` benchmark ranks individual turns and uses only official `has_answer=true` turn labels as relevance judgments. It reports Precision@K, Recall@K, Hit@K, MRR, per-question-type results, answerable-question coverage, abstentions, and skipped cases. It compares transparent token-set Jaccard and BM25 under the same question-level haystack.
+
+Run it after downloading LongMemEval-S:
+
+```bash
+python scripts/build_longmemeval_turn_retrieval_eval.py \
+  --input data/longmemeval_s_cleaned.json \
+  --output-cases results/longmemeval_s_turn_cases.jsonl \
+  --output-summary results/longmemeval_s_turn_retrieval.json \
+  --k 10
+```
+
+This is a retrieval-only diagnostic, not answer generation or semantic correctness. Gold relevance is the benchmark's turn-level `has_answer` annotation. Questions without any labeled evidence turn are counted as coverage failures rather than silently assigned a zero-relevance ranking; abstention questions are reported separately. The automated workflow now runs this full-S turn benchmark and uploads the per-question cases with the summary. Compare it with session retrieval to determine whether the next bottleneck is evidence selection within a session or answer construction from retrieved evidence.
