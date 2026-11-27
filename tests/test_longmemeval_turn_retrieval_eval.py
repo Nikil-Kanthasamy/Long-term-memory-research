@@ -90,7 +90,7 @@ class LongMemEvalTurnRetrievalTests(unittest.TestCase):
             stopwords=BM25_SELECTIVE_STOPWORDS,
         )
         self.assertEqual(
-            BM25_SELECTIVE_STOPWORDS, frozenset({"a", "an", "the", "and", "or", "of"})
+            BM25_SELECTIVE_STOPWORDS, frozenset({"a", "an", "the", "and", "or"})
         )
         self.assertNotIn("what", BM25_SELECTIVE_STOPWORDS)
         self.assertNotIn("did", BM25_SELECTIVE_STOPWORDS)
