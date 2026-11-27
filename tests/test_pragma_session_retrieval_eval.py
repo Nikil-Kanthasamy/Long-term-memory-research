@@ -6,6 +6,7 @@ from scripts.build_pragma_session_retrieval_eval import (
 )
 from scripts.build_longmemeval_turn_retrieval_eval import (
     BM25_ABLATION_STOPWORDS,
+    BM25_SELECTIVE_STOPWORDS,
     evaluate_turn_retrieval,
     rank_bm25,
 )
@@ -92,6 +93,16 @@ class PragmaSessionRetrievalTests(unittest.TestCase):
             "user_cluster_bootstrap_95_ci",
             paired["metrics"]["recall_at_5"],
         )
+        selective = evaluate_turn_retrieval(
+            cases,
+            lambda query, sessions: rank_bm25(
+                query, sessions, stopwords=BM25_SELECTIVE_STOPWORDS
+            ),
+        )
+        selective_paired = paired_user_bootstrap(
+            baseline, selective, resamples=100
+        )
+        self.assertEqual(selective_paired["matched_questions"], 2)
 
 
 if __name__ == "__main__":
