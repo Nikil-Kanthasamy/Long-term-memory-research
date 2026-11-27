@@ -81,7 +81,7 @@ The official judge uses a separate OpenAI API key; it is not the Gemini answer-g
 
 ## Scope and limitations
 
-- The benchmark adapter currently retrieves whole sessions. It does not yet implement turn-level retrieval, dense embeddings, hybrid reranking, key expansion, or time-aware query pruning.
+- Session-level and turn-level lexical/BM25 retrieval are implemented. Dense embeddings, hybrid reranking, query expansion, and explicit time-aware ranking remain future work.
 - The BM25 result is one deterministic run at K=5; audit per-question errors and reproduce before making strong comparative claims.
 - Optional QA generation uses Gemini and is not itself the official judge. Retrieval scores and answer accuracy must be reported separately.
 - The full S dataset is roughly hundreds of MB. The M dataset is much larger; begin with S.
@@ -110,4 +110,4 @@ python scripts/build_longmemeval_turn_retrieval_eval.py \
   --k 10
 ```
 
-This is a retrieval-only diagnostic, not answer generation or semantic correctness. Gold relevance is the benchmark's turn-level `has_answer` annotation. Questions without any labeled evidence turn are counted as coverage failures rather than silently assigned a zero-relevance ranking; abstention questions are reported separately. The automated workflow now runs this full-S turn benchmark and uploads the per-question cases with the summary. Compare it with session retrieval to determine whether the next bottleneck is evidence selection within a session or answer construction from retrieved evidence.
+This is a retrieval-only diagnostic, not answer generation or semantic correctness. Gold relevance is the benchmark's turn-level `has_answer` annotation. Questions without any labeled evidence turn are counted as coverage failures rather than silently assigned a zero-relevance ranking; abstention questions are reported separately. The automated workflow now runs this full-S turn benchmark and uploads the per-question cases with the summary. In [workflow run 45925646437](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45925646437), the index contained 231,595 turns; all 470 answerable questions were eligible, with 30 abstentions reported separately. BM25 achieved Recall@5 67.15%, Hit@5 79.36%, and MRR 66.30%; Jaccard achieved 41.72%, 52.55%, and 40.01%. The per-question-type breakdown shows particularly low BM25 Recall@5 for multi-session (47.36%) and single-session-preference (33.33%) questions. See [the complete results and limitations](results-longmemeval-turn-retrieval-run-45925646437.md). These figures measure exact annotated evidence-turn retrieval only, not answer correctness. The same run's session-level BM25 Recall@5 was 91.44%; that number is not directly comparable because the unit and relevance labels differ. The turn-level gap points to evidence localization and query matching as the next retrieval bottlenecks, before testing reader synthesis.
