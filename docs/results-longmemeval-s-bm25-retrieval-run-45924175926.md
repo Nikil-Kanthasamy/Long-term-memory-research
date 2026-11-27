@@ -26,10 +26,10 @@ BM25 ranked a relevant evidence session first for 409 of the 470 scored question
 | multi-session | 121 | 83.77% | 18.83% | 91.32% | 15.07% |
 | single-session-preference | 30 | 86.67% | 6.67% | 56.61% | 2.33% |
 | temporal-reasoning | 127 | 88.11% | 20.49% | 88.06% | 13.85% |
-| knowledge-update | 24 | 97.92% | 29.17% | 96.88% | 16.50% |
-| single-session-assistant | 14 | 100.00% | 94.64% | 100.00% | 69.11% |
+| knowledge-update | 72 | 97.92% | 29.17% | 96.88% | 16.50% |
+| single-session-assistant | 56 | 100.00% | 94.64% | 100.00% | 69.11% |
 
-Counts above sum to the 380 questions in these six reported categories; any remaining scored questions are represented in the overall aggregate and should be checked against the per-category JSON before making category-completeness claims.
+The six question-type counts sum to all 470 scored questions.
 
 ## Interpretation
 
