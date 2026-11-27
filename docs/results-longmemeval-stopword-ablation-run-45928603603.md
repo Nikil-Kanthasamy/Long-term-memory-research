@@ -57,3 +57,31 @@ The largest apparent gain is multi-session retrieval, while knowledge-update reg
 This is now a reproducible, implemented ablation, rather than only an offline re-scoring exercise. It still remains exploratory: the stopword list was manually selected after inspecting errors on this same test split. The benchmark is therefore not an untouched validation set, and the apparent gains may be optimistic. The ablation should not replace default BM25 as the research control or be described as a general improvement.
 
 Next evaluation should freeze the list and test it on a separately held-out dataset or a genuinely untouched split. Keep default BM25 as the control, report paired per-question changes and all question-type regressions, and do not tune the list against the held-out results. Turn-level Recall@K is evidence retrieval, not answer accuracy.
+
+
+## Paired per-question outcome analysis
+
+The uploaded artifact contains both conditions' per-question rankings. Matching all 470 question IDs gives the following exact counts:
+
+| Metric | Improved | Regressed | Unchanged |
+|---|---:|---:|---:|
+| Recall@5 | 32 | 15 | 423 |
+| Hit@5 | 13 | 4 | 453 |
+| MRR | 100 | 74 | 296 |
+| Recall@10 | 33 | 10 | 427 |
+| Hit@10 | 16 | 5 | 449 |
+
+For Recall@5, the per-type win/loss/tie counts were:
+
+| Question type | Improved | Regressed | Unchanged |
+|---|---:|---:|---:|
+| knowledge-update (72) | 3 | 4 | 65 |
+| multi-session (121) | 18 | 4 | 99 |
+| single-session-assistant (56) | 0 | 0 | 56 |
+| single-session-preference (30) | 1 | 0 | 29 |
+| single-session-user (64) | 2 | 1 | 61 |
+| temporal-reasoning (127) | 8 | 6 | 113 |
+
+This sharpens the interpretation: the aggregate Recall@5 gain comes primarily from 18 multi-session questions improving versus 4 regressing. Meanwhile, MRR has more question-level wins than losses, but its average paired change is slightly negative because the sizes of rank changes differ; a win/loss count alone does not capture effect magnitude. The 423 unchanged Recall@5 cases also show that the aggregate gain is concentrated rather than broad.
+
+These counts are descriptive paired outcomes on the same test split, not independent replication. The list remains a test-set-informed hypothesis and needs evaluation on an untouched benchmark before adoption.
