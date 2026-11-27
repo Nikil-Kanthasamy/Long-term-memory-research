@@ -306,7 +306,8 @@ def main():
     }
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"build": build_summary, "retrieval_jaccard": jaccard["metrics"],
-                      "retrieval_bm25": bm25["metrics"],\n                      "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"]}, sort_keys=True))
+                      "retrieval_bm25": bm25["metrics"],
+                      "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"]}, sort_keys=True))
 
 
 if __name__ == "__main__":
