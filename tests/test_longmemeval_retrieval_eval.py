@@ -38,7 +38,9 @@ class LongMemEvalRetrievalTests(unittest.TestCase):
         self.assertEqual(ranked[0][1], "b")
         metrics = evaluate([{"question": "Where did I move to Oslo?", "sessions": sessions, "question_type": "multi-session"}])
         self.assertEqual(metrics["recall_at_1"], 1.0)
-        self.assertEqual(metrics["mrr"], 1.0)\n        bm25 = rank_sessions_bm25("Where did I move to Oslo?", sessions)\n        self.assertEqual(bm25[0][1], "b")
+        self.assertEqual(metrics["mrr"], 1.0)
+        bm25 = rank_sessions_bm25("Where did I move to Oslo?", sessions)
+        self.assertEqual(bm25[0][1], "b")
 
 
 if __name__ == "__main__":
