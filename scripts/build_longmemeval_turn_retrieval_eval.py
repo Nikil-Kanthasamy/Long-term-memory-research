@@ -130,6 +130,26 @@ def rank_bm25(question, turns, k1=1.5, b=0.75, stopwords=frozenset()):
     return ranked
 
 
+def rank_rrf(question, turns, k=60):
+    """Fuse BM25 and Jaccard rankings with reciprocal rank fusion."""
+    if k < 1:
+        raise ValueError("RRF k must be at least 1")
+    bm25 = rank_bm25(question, turns)
+    jaccard = rank_jaccard(question, turns)
+    scores = {}
+    relevance = {}
+    for ranking in (bm25, jaccard):
+        for rank, (_, turn_id, relevant) in enumerate(ranking, start=1):
+            scores[turn_id] = scores.get(turn_id, 0.0) + 1.0 / (k + rank)
+            if turn_id in relevance and relevance[turn_id] != bool(relevant):
+                raise ValueError(f"Inconsistent relevance label for turn {turn_id}")
+            relevance[turn_id] = bool(relevant)
+    ranked = [(score, turn_id, relevance[turn_id])
+              for turn_id, score in scores.items()]
+    ranked.sort(key=lambda row: (-row[0], row[1]))
+    return ranked
+
+
 def evaluate_turn_retrieval(cases, ranker, ks=(1, 3, 5, 10)):
     per_question = []
     by_type = {}
