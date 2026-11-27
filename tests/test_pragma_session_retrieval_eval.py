@@ -9,6 +9,7 @@ from scripts.build_longmemeval_turn_retrieval_eval import (
     BM25_SELECTIVE_STOPWORDS,
     evaluate_turn_retrieval,
     rank_bm25,
+    rank_rrf,
 )
 
 
@@ -103,6 +104,8 @@ class PragmaSessionRetrievalTests(unittest.TestCase):
             baseline, selective, resamples=100
         )
         self.assertEqual(selective_paired["matched_questions"], 2)
+        fused = evaluate_turn_retrieval(cases, rank_rrf)
+        self.assertEqual(fused["metrics"]["questions"], 2)
 
 
 if __name__ == "__main__":
