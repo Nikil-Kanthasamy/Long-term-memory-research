@@ -181,4 +181,8 @@ jobs:
             paraphrase-joint-span-seed-sweep.log
             independent-paraphrase-joint-span-seed-sweep/
             independent-paraphrase-joint-span-seed-sweep.log
+            longmemeval-span-eval.jsonl
+            longmemeval-span-eval-build-summary.json
+            longmemeval-oracle-span-seed-sweep/
+            longmemeval-oracle-span-seed-sweep.log
           retention-days: 30
