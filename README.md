@@ -118,7 +118,7 @@ Optionally generate QA hypotheses with Gemini (one generation request per questi
 python -m src.ltm.cli longmemeval --dataset data/longmemeval_s_cleaned.json --k 5 --limit 10 --generate-answers
 ~~~
 
-The adapter reports Precision@K, Recall@K, MRR, Hit@1, and per-question-type results. No-gold-evidence/abstention questions are counted separately and excluded from retrieval averages. Use the official LongMemEval GPT-4o judge script to score generated hypotheses; see [Phase 4 guide](docs/phase-4-longmemeval.md). Retrieval metrics and end-to-end answer accuracy must be reported separately.
+The adapter reports Precision@K, Recall@K, MRR, Hit@1, and per-question-type results. No-gold-evidence/abstention questions are counted separately and excluded from retrieval averages. Use the official LongMemEval GPT-4o judge script to score generated hypotheses; see [Phase 4 guide](docs/phase-4-longmemeval.md). Retrieval metrics and end-to-end answer accuracy must be reported separately. The full 500-question LongMemEval-S retrieval comparison found BM25 Recall@5 91.44% and MRR 90.75% on 470 answerable questions, versus 32.09% and 20.98% for the lexical baseline. See the [full results, question-type breakdown, and paired bootstrap intervals](docs/results-longmemeval-s-bm25-retrieval-run-45924175926.md).
 
 ## Phase 5: memory-aware multi-format content creation
 
