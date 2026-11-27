@@ -2,10 +2,11 @@
 
 ## Reproduction and provenance
 
-- Benchmark workflow: [45930242216](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45930242216) (all steps passed).
-- Unit tests: [45930242246](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45930242246) (passed).
+- Primary benchmark workflow: [45930373799](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45930373799) (all steps passed; optimized bootstrap implementation).
+- Unit tests: [45930373787](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45930373787) (passed).
+- Initial benchmark workflow: [45930242216](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45930242216) (also passed; same metrics and confidence intervals).
 - Branch: `research/long-term-memory-starter`.
-- Benchmark code revision: `68fa96d63d06889bb46d2af2de2a66025c0669b9`.
+- Primary benchmark code revision: `7dfe5713a89e7eb81ffa892a05f71669cdd35f08`.
 - Dataset: `stellahj/PRAGMA`, resolved immutable Hugging Face revision `e6749080e437a6c83444cc0b239a28ff587a993e`.
 - License file SHA-256: `d500614feef74e1e2cc91aa6cddd0c7b9098e79a5af45c92a6ab7455b5a99677`. The dataset card specifies the NVIDIA License and non-commercial research/evaluation use. Source files are downloaded at CI runtime; only metrics are uploaded.
 - Dataset scale: 100 users, 400 queries (100 per query type), 4,167 timestamped sessions (3,000 filler, 494 event, 673 trajectory).
@@ -69,6 +70,8 @@ MRR also declined in every type: Event-Align -1.10 pp, Event-Correct -0.50 pp, T
 | Hit@10 | 0 | 0 | 400 |
 
 Question-level outcomes are paired within the same user histories; user-cluster bootstrap is the inferential unit.
+
+The optimized implementation was rerun on the same pinned dataset revision in workflow 45930373799. Aggregate metrics, paired user outcomes, and bootstrap intervals matched the initial successful run exactly (up to floating-point rounding), confirming that the bootstrap optimization did not alter the estimator.
 
 ## Interpretation across benchmarks
 
