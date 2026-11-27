@@ -11,7 +11,9 @@ on:
       - src/ltm/store.py
       - scripts/download_longmemeval.py
       - scripts/build_longmemeval_retrieval_eval.py
+      - scripts/build_longmemeval_turn_retrieval_eval.py
       - tests/test_longmemeval_retrieval_eval.py
+      - tests/test_longmemeval_turn_retrieval_eval.py
   workflow_dispatch:
     inputs:
       limit:
@@ -78,6 +80,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: longmemeval-s-retrieval-comparison-${{ github.run_id }}
-          path: |\n            results/longmemeval_s_*.json\n            results/longmemeval_s_turn_cases.jsonl
+          path: |
+            results/longmemeval_s_*.json
+            results/longmemeval_s_turn_cases.jsonl
           if-no-files-found: error
           retention-days: 30
