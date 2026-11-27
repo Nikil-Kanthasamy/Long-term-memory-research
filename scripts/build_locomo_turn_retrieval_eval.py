@@ -13,6 +13,7 @@ from pathlib import Path
 try:
     from scripts.build_longmemeval_turn_retrieval_eval import (
         BM25_ABLATION_STOPWORDS,
+        BM25_SELECTIVE_STOPWORDS,
         evaluate_turn_retrieval,
         rank_bm25,
         rank_jaccard,
@@ -224,12 +225,24 @@ def main():
         ),
         ks,
     )
+    selective = evaluate_turn_retrieval(
+        cases,
+        lambda question, turns: rank_bm25(
+            question, turns, stopwords=BM25_SELECTIVE_STOPWORDS
+        ),
+        ks,
+    )
     jaccard = evaluate_turn_retrieval(cases, rank_jaccard, ks)
     summary = {
         "build": build,
         "protocol": {
             "baseline": "Okapi BM25 k1=1.5, b=0.75, unchanged tokenizer",
             "ablation": "same BM25 parameters with the frozen LongMemEval stopword list",
+            "selective_ablation": {
+                "removed_terms": sorted(BM25_SELECTIVE_STOPWORDS),
+                "preserved_cue_families": "temporal, relational, interrogative, possessive, and action terms",
+                "status": "exploratory; not held-out validation",
+            },
             "top_k": list(ks),
             "unit": "individual dialogue turn",
             "relevance": "turn dia_id listed in the QA evidence field",
@@ -238,12 +251,17 @@ def main():
         "retrieval_jaccard": jaccard["metrics"],
         "retrieval_bm25": baseline["metrics"],
         "retrieval_bm25_stopword_ablation": ablation["metrics"],
+        "retrieval_bm25_selective_stopword_ablation": selective["metrics"],
         "paired_question_analysis": paired_summary(
             baseline, ablation, resamples=args.bootstrap_resamples
+        ),
+        "paired_selective_question_analysis": paired_summary(
+            baseline, selective, resamples=args.bootstrap_resamples
         ),
         "per_question": {
             "bm25": baseline["per_question"],
             "stopword_ablation": ablation["per_question"],
+            "selective_stopword_ablation": selective["per_question"],
         },
     }
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
@@ -252,7 +270,9 @@ def main():
         "build": build,
         "bm25": baseline["metrics"],
         "stopword_ablation": ablation["metrics"],
+        "selective_stopword_ablation": selective["metrics"],
         "paired": summary["paired_question_analysis"],
+        "paired_selective": summary["paired_selective_question_analysis"],
     }, sort_keys=True))
 
 
