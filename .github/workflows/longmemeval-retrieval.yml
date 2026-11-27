@@ -65,10 +65,19 @@ jobs:
               --output "results/longmemeval_s_${MODE}.json"
           done
 
+      - name: Build and evaluate turn-level evidence retrieval
+        run: |
+          mkdir -p results
+          python scripts/build_longmemeval_turn_retrieval_eval.py \
+            --input data/longmemeval_s_cleaned.json \
+            --output-cases results/longmemeval_s_turn_cases.jsonl \
+            --output-summary results/longmemeval_s_turn_retrieval.json \
+            --k 10
+
       - name: Upload retrieval report
         uses: actions/upload-artifact@v4
         with:
           name: longmemeval-s-retrieval-comparison-${{ github.run_id }}
-          path: results/longmemeval_s_*.json
+          path: |\n            results/longmemeval_s_*.json\n            results/longmemeval_s_turn_cases.jsonl
           if-no-files-found: error
           retention-days: 30
