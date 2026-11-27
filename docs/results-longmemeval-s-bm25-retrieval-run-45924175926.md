@@ -46,7 +46,7 @@ The six question-type counts sum to all 470 scored questions.
 
 ## Interpretation
 
-- BM25 is a substantially stronger lexical retrieval baseline than the existing overlap/Jaccard-style lexical mode on this benchmark.
+- BM25 is a substantially stronger lexical retrieval baseline than the existing overlap/Jaccard-style lexical mode on this benchmark. The lexical mode uses token-set Jaccard overlap plus the repository's transparent morphology/paraphrase normalizations; both modes also add a small importance prior (0.05 × stored importance) to the retrieval score.
 - Gains appear across the major question types, including multi-session, temporal reasoning, preference, and knowledge-update questions.
 - The single-session-assistant category is a relative exception: the existing lexical baseline already performs strongly there.
 - This benchmark ranks complete haystack sessions using each question's own haystack. It does not measure retrieval across a persistent cross-user memory corpus.
@@ -55,7 +55,7 @@ The six question-type counts sum to all 470 scored questions.
 
 ## Reproduction
 
-The workflow downloads the cleaned LongMemEval-S dataset, then runs the repository CLI twice with `--retrieval-mode lexical` and `--retrieval-mode bm25`, using `k=5`. The two JSON outputs are uploaded as the workflow artifact:
+The workflow downloads the cleaned LongMemEval-S dataset, then runs the repository CLI twice with `--retrieval-mode lexical` and `--retrieval-mode bm25`, using `k=5`. BM25 computes IDF over each question's haystack, uses Okapi BM25 with `k1=1.5` and `b=0.75`, and then applies the same small importance prior. The two JSON outputs are uploaded as the workflow artifact:
 
 [Download workflow artifact](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45924175926)
 
