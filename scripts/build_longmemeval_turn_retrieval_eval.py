@@ -278,6 +278,7 @@ def main():
     ks = tuple(sorted(set((1, 3, 5, args.k))))
     jaccard = evaluate_turn_retrieval(cases, rank_jaccard, ks)
     bm25 = evaluate_turn_retrieval(cases, rank_bm25, ks)
+    rrf = evaluate_turn_retrieval(cases, rank_rrf, ks)
     # Exploratory, fixed-list stopword ablation. This is not the primary model
     # and the list was selected after inspecting this benchmark's failure cases.
     bm25_stopword_ablation = evaluate_turn_retrieval(
@@ -331,6 +332,8 @@ def main():
         "build": build_summary,
         "retrieval_jaccard": jaccard,
         "retrieval_bm25": bm25,
+        "retrieval_rrf_bm25_jaccard": rrf,
+        "rrf_protocol": {"fusion": "reciprocal rank fusion of BM25 and token-set Jaccard", "k": 60},
         "retrieval_bm25_stopword_ablation": bm25_stopword_ablation,
         "retrieval_bm25_selective_stopword_ablation": bm25_selective_stopword_ablation,
         "selective_stopword_policy": {
@@ -345,6 +348,7 @@ def main():
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"build": build_summary, "retrieval_jaccard": jaccard["metrics"],
                       "retrieval_bm25": bm25["metrics"],
+                      "retrieval_rrf_bm25_jaccard": rrf["metrics"],
                       "retrieval_bm25_stopword_ablation": bm25_stopword_ablation["metrics"],
                       "retrieval_bm25_selective_stopword_ablation": bm25_selective_stopword_ablation["metrics"]}, sort_keys=True))
 
