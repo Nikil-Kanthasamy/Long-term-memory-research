@@ -213,6 +213,8 @@ def main():
     parser.add_argument("--metadata", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--bootstrap-resamples", type=int, default=20000)
+    parser.add_argument("--dataset-revision", default=None)
+    parser.add_argument("--license-sha256", default=None)
     args = parser.parse_args()
     if args.bootstrap_resamples < 100:
         parser.error("--bootstrap-resamples must be at least 100")
@@ -238,6 +240,12 @@ def main():
     )
     summary = {
         "build": build,
+        "source": {
+            "dataset_repo": "stellahj/PRAGMA",
+            "dataset_revision": args.dataset_revision,
+            "license_sha256": args.license_sha256,
+            "license": "NVIDIA License; non-commercial research/evaluation only",
+        },
         "protocol": {
             "control": "Okapi BM25 k1=1.5, b=0.75, unchanged tokenizer",
             "ablation": "same BM25 parameters with the frozen LongMemEval stopword list",
