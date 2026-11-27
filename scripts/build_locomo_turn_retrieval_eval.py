@@ -139,7 +139,7 @@ def build_locomo_cases(dataset):
 
 
 def paired_summary(baseline, ablation, seed=20261127, resamples=20000):
-    """Compute paired outcomes and percentile bootstrap CIs by question."""
+    """Paired outcomes with conversation-cluster bootstrap confidence intervals."""
     import random
 
     baseline_rows = {row["question_id"]: row for row in baseline["per_question"]}
@@ -149,9 +149,37 @@ def paired_summary(baseline, ablation, seed=20261127, resamples=20000):
         return {"matched_questions": 0, "metrics": {}}
 
     metrics = ("recall_at_5", "hit_at_5", "mrr", "recall_at_10", "hit_at_10")
+    by_conversation = {}
+    for qid in ids:
+        conversation_id = qid.rsplit(":", 1)[0]
+        bucket = by_conversation.setdefault(
+            conversation_id, {metric: [] for metric in metrics}
+        )
+        for metric in metrics:
+            bucket[metric].append(
+                ablation_rows[qid][metric] - baseline_rows[qid][metric]
+            )
+
+    cluster_ids = sorted(by_conversation)
     rng = random.Random(seed)
-    output = {"matched_questions": len(ids), "bootstrap_seed": seed,
-              "bootstrap_resamples": resamples, "metrics": {}}
+    samples = {metric: [] for metric in metrics}
+    for _ in range(resamples):
+        selected = [rng.choice(cluster_ids) for _ in cluster_ids]
+        denominators = sum(len(by_conversation[c][metrics[0]]) for c in selected)
+        for metric in metrics:
+            total = sum(
+                sum(by_conversation[c][metric]) for c in selected
+            )
+            samples[metric].append(total / denominators)
+
+    output = {
+        "matched_questions": len(ids),
+        "conversation_clusters": len(cluster_ids),
+        "bootstrap_unit": "conversation; sample conversations with replacement and retain all their questions",
+        "bootstrap_seed": seed,
+        "bootstrap_resamples": resamples,
+        "metrics": {},
+    }
     for metric in metrics:
         deltas = [
             ablation_rows[qid][metric] - baseline_rows[qid][metric]
@@ -160,18 +188,16 @@ def paired_summary(baseline, ablation, seed=20261127, resamples=20000):
         wins = sum(delta > 1e-12 for delta in deltas)
         losses = sum(delta < -1e-12 for delta in deltas)
         ties = len(deltas) - wins - losses
-        samples = []
-        for _ in range(resamples):
-            samples.append(sum(rng.choice(deltas) for _ in deltas) / len(deltas))
-        samples.sort()
-        lo = samples[int(0.025 * resamples)]
-        hi = samples[min(resamples - 1, int(0.975 * resamples))]
+        values = sorted(samples[metric])
         output["metrics"][metric] = {
             "mean_change": sum(deltas) / len(deltas),
             "improved": wins,
             "regressed": losses,
             "unchanged": ties,
-            "bootstrap_95_ci": [lo, hi],
+            "conversation_cluster_bootstrap_95_ci": [
+                values[int(0.025 * resamples)],
+                values[min(resamples - 1, int(0.975 * resamples))],
+            ],
         }
     return output
 
