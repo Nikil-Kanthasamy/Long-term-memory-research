@@ -47,7 +47,7 @@ jobs:
           revision = HfApi().dataset_info(repo_id).sha
           if not revision or len(revision) != 40:
               raise SystemExit(f"Could not resolve immutable dataset revision: {revision!r}")
-          Path("data/PRAGMA_REVISION.txt").write_text(revision + "\\n", encoding="utf-8")
+          Path("data/PRAGMA_REVISION.txt").write_text(revision + "\n", encoding="utf-8")
           for filename in ("LICENSE", "data/full_sessions.json", "data/metadata.json"):
               downloaded = hf_hub_download(
                   repo_id=repo_id, filename=filename, repo_type="dataset",
@@ -59,18 +59,18 @@ jobs:
               print(f"Downloaded {filename} from {revision}")
           license_sha = hashlib.sha256(Path("LICENSE").read_bytes()).hexdigest()
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
-              env.write(f"PRAGMA_REVISION={revision}\\n")
-              env.write(f"PRAGMA_LICENSE_SHA256={license_sha}\\n")
+              env.write(f"PRAGMA_REVISION={revision}\n")
+              env.write(f"PRAGMA_LICENSE_SHA256={license_sha}\n")
           PY
 
       - name: Run session-level retrieval benchmark
         run: |
-          python scripts/build_pragma_session_retrieval_eval.py \\
-            --histories data/full_sessions.json \\
-            --metadata data/metadata.json \\
-            --output results/pragma_session_retrieval.json \\
-            --bootstrap-resamples 20000 \\
-            --dataset-revision "$PRAGMA_REVISION" \\
+          python scripts/build_pragma_session_retrieval_eval.py \
+            --histories data/full_sessions.json \
+            --metadata data/metadata.json \
+            --output results/pragma_session_retrieval.json \
+            --bootstrap-resamples 20000 \
+            --dataset-revision "$PRAGMA_REVISION" \
             --license-sha256 "$PRAGMA_LICENSE_SHA256"
 
       - name: Upload metrics only (no histories or user profiles)
