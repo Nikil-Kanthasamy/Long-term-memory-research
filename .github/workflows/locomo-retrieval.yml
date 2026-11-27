@@ -1,0 +1,59 @@
+name: LoCoMo independent retrieval benchmark
+
+on:
+  push:
+    branches:
+      - research/long-term-memory-starter
+    paths:
+      - .github/workflows/locomo-retrieval.yml
+      - scripts/build_locomo_turn_retrieval_eval.py
+      - scripts/build_longmemeval_turn_retrieval_eval.py
+      - tests/test_locomo_turn_retrieval_eval.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  locomo-retrieval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research/long-term-memory-starter
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download pinned LoCoMo dataset
+        run: |
+          mkdir -p data results
+          curl --fail --location --retry 3 \
+            https://raw.githubusercontent.com/snap-research/locomo/cbfbc1dba6bc53d00625212a0f22d55ffee7c1fc/data/locomo10.json \
+            --output data/locomo10.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("data/locomo10.json").read_text(encoding="utf-8"))
+          assert isinstance(data, list) and len(data) == 10, "Unexpected LoCoMo dataset shape"
+          print(f"Validated {len(data)} LoCoMo conversations")
+          PY
+
+      - name: Run independent evidence retrieval benchmark
+        run: |
+          python scripts/build_locomo_turn_retrieval_eval.py \
+            --input data/locomo10.json \
+            --output results/locomo_turn_retrieval.json \
+            --bootstrap-resamples 20000
+
+      - name: Upload metrics only (no dataset or dialogue text)
+        uses: actions/upload-artifact@v4
+        with:
+          name: locomo-independent-retrieval-${{ github.run_id }}
+          path: results/locomo_turn_retrieval.json
+          if-no-files-found: error
+          retention-days: 30
