@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.build_longmemeval_turn_retrieval_eval import (
-    BM25_ABLATION_STOPWORDS, BM25_SELECTIVE_STOPWORDS, build_failure_analysis, build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard,
+    BM25_ABLATION_STOPWORDS, BM25_SELECTIVE_STOPWORDS, build_failure_analysis, build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard, rank_rrf,
 )
 
 
@@ -96,6 +96,21 @@ class LongMemEvalTurnRetrievalTests(unittest.TestCase):
         self.assertNotIn("did", BM25_SELECTIVE_STOPWORDS)
         self.assertNotIn("to", BM25_SELECTIVE_STOPWORDS)
         self.assertEqual(len(selective), 1)
+
+    def test_rrf_fuses_bm25_and_jaccard_and_keeps_all_turns(self):
+        turns = [
+            {"turn_id": "0:0", "text": "alpha beta", "relevant": False},
+            {"turn_id": "0:1", "text": "alpha", "relevant": True},
+            {"turn_id": "0:2", "text": "beta", "relevant": False},
+        ]
+        ranked = rank_rrf("alpha beta", turns)
+        self.assertEqual({row[1] for row in ranked}, {"0:0", "0:1", "0:2"})
+        self.assertEqual(
+            {row[1]: row[2] for row in ranked},
+            {"0:0": False, "0:1": True, "0:2": False},
+        )
+        with self.assertRaises(ValueError):
+            rank_rrf("alpha", turns, k=0)
 
     def test_retrieval_ranks_gold_turn_and_reports_recall(self):
         cases, _ = build_turn_cases(self.fixture())
