@@ -9,6 +9,7 @@ from scripts.build_longmemeval_turn_retrieval_eval import (
     BM25_SELECTIVE_STOPWORDS,
     evaluate_turn_retrieval,
     rank_bm25,
+    rank_rrf,
 )
 
 
@@ -74,6 +75,8 @@ class LoCoMoRetrievalTests(unittest.TestCase):
             ks=(1, 3, 5, 10),
         )
         self.assertEqual(selective["metrics"]["questions"], 2)
+        fused = evaluate_turn_retrieval(cases, rank_rrf, ks=(1, 3, 5, 10))
+        self.assertEqual(fused["metrics"]["questions"], 2)
 
     def test_paired_summary_reports_question_level_changes(self):
         cases, _ = build_locomo_cases(self.fixture())
