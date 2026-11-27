@@ -174,15 +174,24 @@ def paired_user_bootstrap(baseline, ablation, seed=20261127, resamples=20000):
         return {"matched_questions": 0, "user_clusters": 0, "metrics": {}}
 
     metrics = ("recall_at_5", "hit_at_5", "mrr", "recall_at_10", "hit_at_10")
+    users = sorted(by_user)
+    user_counts = {uid: len(by_user[uid]) for uid in users}
+    user_sums = {
+        uid: {
+            metric: sum(abla[qid][metric] - base[qid][metric] for qid in by_user[uid])
+            for metric in metrics
+        }
+        for uid in users
+    }
     rng = random.Random(seed)
     draws = {metric: [] for metric in metrics}
-    users = sorted(by_user)
     for _ in range(resamples):
         chosen = [rng.choice(users) for _ in users]
-        sampled_ids = [qid for uid in chosen for qid in by_user[uid]]
+        denominator = sum(user_counts[uid] for uid in chosen)
         for metric in metrics:
-            delta = sum(abla[qid][metric] - base[qid][metric] for qid in sampled_ids)
-            draws[metric].append(delta / len(sampled_ids))
+            total = sum(user_sums[uid][metric] for uid in chosen)
+            draws[metric].append(total / denominator)
+
     output = {
         "matched_questions": len(ids),
         "user_clusters": len(users),
