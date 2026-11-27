@@ -162,6 +162,71 @@ def evaluate_turn_retrieval(cases, ranker, ks=(1, 3, 5, 10)):
     return {"metrics": metrics, "per_question": per_question}
 
 
+
+def build_failure_analysis(cases, bm25_result, example_limit=25):
+    """Summarize where BM25 misses annotated evidence and show compact examples."""
+    case_by_id = {case["id"]: case for case in cases}
+    rows = bm25_result["per_question"]
+    buckets = {"rank_1": 0, "rank_2_to_5": 0, "rank_6_to_10": 0,
+               "rank_11_plus": 0, "not_retrieved": 0}
+    for row in rows:
+        rank = row["first_relevant_rank"]
+        if rank is None:
+            buckets["not_retrieved"] += 1
+        elif rank == 1:
+            buckets["rank_1"] += 1
+        elif rank <= 5:
+            buckets["rank_2_to_5"] += 1
+        elif rank <= 10:
+            buckets["rank_6_to_10"] += 1
+        else:
+            buckets["rank_11_plus"] += 1
+
+    def compact(turn):
+        return {
+            "turn_id": turn["turn_id"],
+            "session_id": turn["session_id"],
+            "date": turn["date"],
+            "role": turn["role"],
+            "text": turn["text"][:240],
+        }
+
+    worst = sorted(
+        rows,
+        key=lambda row: (
+            row["first_relevant_rank"] is not None,
+            -(row["first_relevant_rank"] or 10**9),
+            row["question_id"],
+        ),
+    )[:example_limit]
+    examples = []
+    for row in worst:
+        case = case_by_id[row["question_id"]]
+        turns = {turn["turn_id"]: turn for turn in case["turns"]}
+        examples.append({
+            "question_id": row["question_id"],
+            "question_type": row["question_type"],
+            "question": case["question"],
+            "gold_turn_count": row["gold_turn_count"],
+            "first_relevant_rank": row["first_relevant_rank"],
+            "top_ranked_turns": [
+                {**candidate, "text": turns[candidate["turn_id"]]["text"][:240],
+                 "session_id": turns[candidate["turn_id"]]["session_id"],
+                 "date": turns[candidate["turn_id"]]["date"],
+                 "role": turns[candidate["turn_id"]]["role"]}
+                for candidate in row["top_results"][:5]
+            ],
+            "gold_turns": [
+                compact(turn) for turn in case["turns"] if turn["relevant"]
+            ][:5],
+        })
+    return {
+        "rank_of_first_gold_turn": buckets,
+        "worst_examples": examples,
+        "note": "Examples are ranked by the position of the first annotated relevant turn; snippets are truncated to 240 characters.",
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True)
@@ -190,6 +255,7 @@ def main():
         "build": build_summary,
         "retrieval_jaccard": jaccard,
         "retrieval_bm25": bm25,
+        "bm25_failure_analysis": build_failure_analysis(cases, bm25),
         "warning": "Turn-level evidence retrieval only. Labels are benchmark has_answer flags; this is not answer generation or semantic correctness. Metrics are averaged over eligible answerable questions.",
     }
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
