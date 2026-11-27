@@ -112,7 +112,7 @@ def main():
     results = evaluate(cases)
     Path(args.output_cases).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_summary).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.output_cases).write_text("".join(json.dumps(x, ensure_ascii=False) + "\\n" for x in cases), encoding="utf-8")
+    Path(args.output_cases).write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in cases), encoding="utf-8")
     summary = {"build": build_summary, "retrieval": results,
                "warning": "Lexical Jaccard is a transparent baseline, not a semantic retriever. Zero-score ties are deterministically ordered by session ID."}
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
