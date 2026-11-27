@@ -18,6 +18,19 @@
 
 BM25 ranked a relevant evidence session first for 409 of the 470 scored questions (87.02%). It returned at least one relevant session in the top five for 455/470 questions (96.81%); recall@5, which accounts for questions with multiple gold sessions, was 91.44%.
 
+## Paired uncertainty estimates
+
+A paired nonparametric bootstrap was computed over the same 470 scored question IDs for both retrieval modes (20,000 resamples, fixed RNG seed 20261127). The intervals below are percentile 95% confidence intervals for the per-question BM25-minus-lexical metric difference.
+
+| Metric difference | Mean gain | Paired bootstrap 95% CI |
+|---|---:|---:|
+| Precision@5 | +23.87 pp | [+22.09, +25.66] pp |
+| Recall@5 | +59.35 pp | [+55.50, +63.16] pp |
+| MRR | +69.77 pp | [+66.44, +73.01] pp |
+| Hit@1 | +75.32 pp | [+71.28, +79.15] pp |
+
+No bootstrap replicate had a non-positive difference for any of these metrics. These intervals quantify question-sampling uncertainty within this benchmark split; they do not establish generalization to other datasets or retrieval distributions.
+
 ## Recall@5 and MRR by question type
 
 | Question type | Questions | BM25 Recall@5 | Lexical Recall@5 | BM25 MRR | Lexical MRR |
@@ -53,4 +66,4 @@ The output files are `longmemeval_s_lexical.json` and `longmemeval_s_bm25.json`.
 1. Add BM25 parameter and tokenizer ablations while retaining the same 470 scored questions.
 2. Add hybrid BM25 + semantic retrieval, with identical question splits and explicit retrieval-cost reporting.
 3. Evaluate answer generation from the top-k retrieved sessions separately from retrieval metrics.
-4. Report confidence intervals or paired bootstrap intervals over questions before claiming statistical significance.
+4. Replicate the paired comparison on another LongMemEval split or a held-out conversational-memory dataset before making generalization claims.
