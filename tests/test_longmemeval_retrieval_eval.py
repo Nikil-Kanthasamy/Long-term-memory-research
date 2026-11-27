@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.build_longmemeval_retrieval_eval import build_retrieval_cases, evaluate, rank_sessions
+from scripts.build_longmemeval_retrieval_eval import build_retrieval_cases, evaluate, rank_sessions, rank_sessions_bm25
 
 
 class LongMemEvalRetrievalTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class LongMemEvalRetrievalTests(unittest.TestCase):
         self.assertEqual(ranked[0][1], "b")
         metrics = evaluate([{"question": "Where did I move to Oslo?", "sessions": sessions, "question_type": "multi-session"}])
         self.assertEqual(metrics["recall_at_1"], 1.0)
-        self.assertEqual(metrics["mrr"], 1.0)
+        self.assertEqual(metrics["mrr"], 1.0)\n        bm25 = rank_sessions_bm25("Where did I move to Oslo?", sessions)\n        self.assertEqual(bm25[0][1], "b")
 
 
 if __name__ == "__main__":
