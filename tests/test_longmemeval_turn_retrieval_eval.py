@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.build_longmemeval_turn_retrieval_eval import (
-    build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard,
+    build_failure_analysis, build_turn_cases, evaluate_turn_retrieval, rank_bm25, rank_jaccard,
 )
 
 
@@ -46,6 +46,17 @@ class LongMemEvalTurnRetrievalTests(unittest.TestCase):
         self.assertEqual(summary["abstention_questions"], 1)
         self.assertEqual(summary["skipped_by_reason"]["no_labeled_evidence_turn"], 1)
         self.assertEqual(summary["answerable_questions"], 2)
+
+    def test_failure_analysis_includes_rank_buckets_and_readable_gold_context(self):
+        cases, _ = build_turn_cases(self.fixture())
+        result = evaluate_turn_retrieval(cases, rank_bm25, ks=(1, 3, 5))
+        analysis = build_failure_analysis(cases, result)
+        self.assertEqual(analysis["rank_of_first_gold_turn"]["rank_1"], 1)
+        self.assertEqual(analysis["rank_of_first_gold_turn"]["not_retrieved"], 0)
+        example = analysis["worst_examples"][0]
+        self.assertEqual(example["question_id"], "q1")
+        self.assertIn("Oslo", example["gold_turns"][0]["text"])
+        self.assertIn("text", example["top_ranked_turns"][0])
 
     def test_retrieval_ranks_gold_turn_and_reports_recall(self):
         cases, _ = build_turn_cases(self.fixture())
