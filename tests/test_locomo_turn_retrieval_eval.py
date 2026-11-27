@@ -79,7 +79,8 @@ class LoCoMoRetrievalTests(unittest.TestCase):
         paired = paired_summary(baseline, ablation, resamples=100)
         self.assertEqual(paired["matched_questions"], 2)
         self.assertIn("improved", paired["metrics"]["recall_at_5"])
-        self.assertEqual(len(paired["metrics"]["recall_at_5"]["bootstrap_95_ci"]), 2)
+        self.assertEqual(len(paired["metrics"]["recall_at_5"]["conversation_cluster_bootstrap_95_ci"]), 2)
+        self.assertEqual(paired["conversation_clusters"], 1)
 
 
 if __name__ == "__main__":
