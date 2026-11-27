@@ -22,6 +22,7 @@ except ModuleNotFoundError:
     # Direct script execution places scripts/ (not the repository root) on sys.path.
     from build_longmemeval_turn_retrieval_eval import (
         BM25_ABLATION_STOPWORDS,
+        BM25_SELECTIVE_STOPWORDS,
         evaluate_turn_retrieval,
         rank_bm25,
         rank_jaccard,
