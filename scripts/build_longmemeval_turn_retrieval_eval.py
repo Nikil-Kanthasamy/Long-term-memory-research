@@ -183,7 +183,7 @@ def main():
     Path(args.output_cases).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_summary).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_cases).write_text(
-        "".join(json.dumps(case, ensure_ascii=False) + "\\n" for case in cases),
+        "".join(json.dumps(case, ensure_ascii=False) + "\n" for case in cases),
         encoding="utf-8",
     )
     summary = {
@@ -192,7 +192,7 @@ def main():
         "retrieval_bm25": bm25,
         "warning": "Turn-level evidence retrieval only. Labels are benchmark has_answer flags; this is not answer generation or semantic correctness. Metrics are averaged over eligible answerable questions.",
     }
-    Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
+    Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"build": build_summary, "retrieval_jaccard": jaccard["metrics"],
                       "retrieval_bm25": bm25["metrics"]}, sort_keys=True))
 
