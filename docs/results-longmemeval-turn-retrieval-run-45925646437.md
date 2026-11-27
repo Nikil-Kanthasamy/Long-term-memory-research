@@ -63,3 +63,29 @@ Do not compare session Recall@5 directly with turn Recall@5 as though they were 
 - The next end-to-end milestone remains answer generation over retrieved evidence and official LongMemEval judging. Report its answer accuracy separately from these retrieval metrics.
 
 The workflow uploaded the full per-question turn cases and summary as artifact `longmemeval-s-retrieval-comparison-45925646437`.
+
+
+## Follow-up failure analysis — workflow run 45926510628
+
+A follow-up run added rank-bucket counts and readable difficult examples. The 470-question turn-level BM25 metrics reproduced the earlier run (Recall@5 67.15%, Hit@5 79.36%, MRR 66.30%), while the new analysis makes the remaining ranking errors more concrete.
+
+| Rank of first annotated evidence turn | Questions |
+|---|---:|
+| Rank 1 | 260 |
+| Ranks 2–5 | 113 |
+| Ranks 6–10 | 26 |
+| Rank 11 or lower in the ranking (outside top 10) | 71 |
+| No annotated evidence turn in the ranked corpus | 0 |
+
+These buckets describe the position of the **first** annotated evidence turn, not the number of relevant turns retrieved. Since the evaluator ranks the full turn corpus, "not retrieved" is zero by construction when all gold turns are in the indexed corpus; the practically important miss bucket is 71 questions whose first gold turn is ranked below 10.
+
+The 25 worst examples were selected by the lowest first-gold rank. Their question-type mix was 10 temporal-reasoning, 7 single-session-preference, 4 multi-session, 3 single-session-assistant, and 1 single-session-user. This is a diagnostic sample, not a representative estimate of category-wide failure rates. The category-level metrics above remain the better aggregate comparison.
+
+Examples illustrate distinct query/evidence mismatches:
+- A guitar-shopping advice question had its annotated evidence turn about upgrading from a Fender Stratocaster to a Gibson Les Paul at rank 478.
+- A question asking for a business milestone mentioned four weeks earlier had its contract-signing evidence turn at rank 452.
+- A gardening activity question ("two weeks ago") had its tomato-sapling evidence turn at rank 447.
+
+The first example has a preference/advice intent whose evidence uses different wording; the latter two require linking a relative-time expression to an event description. These examples motivate separate controlled experiments: (1) query expansion or semantic/hybrid retrieval for paraphrased preference evidence, and (2) explicit date/temporal normalization for relative-time questions. They do **not** establish that either intervention will improve the benchmark; each should be compared against the unchanged BM25 baseline on the same 470 questions.
+
+Artifact: `longmemeval-s-retrieval-comparison-45926510628` (workflow run [45926510628](https://github.com/Nikil-Kanthasamy/Long-term-memory-research/actions/runs/45926510628)).
