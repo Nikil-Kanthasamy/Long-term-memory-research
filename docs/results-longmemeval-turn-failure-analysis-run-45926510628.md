@@ -70,3 +70,33 @@ For both experiments, retain the original BM25 rank as a baseline and report reg
 - Turn Recall@K is not directly comparable with session-level Recall@K because the retrieval units and relevance labels differ.
 - The 25 worst examples are an error-inspection set, not a statistically representative sample.
 - No reader or answer-generation model was evaluated in this run.
+
+
+## Exploratory offline ablation: remove common words
+
+After downloading the complete run artifact, the same 470 question cases were re-scored locally with an exploratory tokenizer variant. The variant removed this fixed list from both query and turn text before BM25: `what, was, the, i, my, a, an, is, did, do, of, in, on, to, for, me, you, and, or, it, that, one, how, many, which, who, when, where, from, with, about, ago, have, has, had, mentioned, tell, can`. All other BM25 settings remained k1=1.5 and b=0.75. The unmodified tokenizer reproduced the artifact metrics exactly.
+
+| Metric | Default BM25 | Remove common words | Paired change |
+|---|---:|---:|---:|
+| Recall@5 | 67.15% | 69.19% | +2.04 pp |
+| Hit@5 | 79.36% | 81.28% | +1.91 pp |
+| MRR | 66.30% | 66.17% | -0.13 pp |
+
+A paired question-level percentile bootstrap (20,000 resamples; seed 20261127) gave these 95% intervals for the change:
+
+- Recall@5: +0.30 to +3.80 percentage points.
+- Hit@5: +0.21 to +3.62 percentage points.
+- MRR: -1.82 to +1.50 percentage points.
+
+Per-type Recall@5 changed as follows:
+
+| Question type | Default | Remove common words |
+|---|---:|---:|
+| knowledge-update | 81.48% | 80.79% |
+| multi-session | 47.36% | 53.22% |
+| single-session-assistant | 85.71% | 85.71% |
+| single-session-preference | 33.33% | 36.67% |
+| single-session-user | 89.84% | 90.62% |
+| temporal-reasoning | 66.25% | 67.43% |
+
+This suggests the largest gains are in multi-session retrieval, with smaller gains for preference questions, while knowledge-update retrieval regresses slightly. The ablation is exploratory and was measured on the same benchmark split used to inspect failures; the word list was manually selected, and no held-out split was used. It is not evidence of a generalizable improvement and should not replace the primary BM25 baseline. Next: freeze the list, evaluate on a separate validation dataset or a clearly separated development split, and report per-type regressions before considering adoption.
