@@ -10,12 +10,21 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from scripts.build_longmemeval_turn_retrieval_eval import (
-    BM25_ABLATION_STOPWORDS,
-    evaluate_turn_retrieval,
-    rank_bm25,
-    rank_jaccard,
-)
+try:
+    from scripts.build_longmemeval_turn_retrieval_eval import (
+        BM25_ABLATION_STOPWORDS,
+        evaluate_turn_retrieval,
+        rank_bm25,
+        rank_jaccard,
+    )
+except ModuleNotFoundError:
+    # Direct script execution places scripts/ (not the repository root) on sys.path.
+    from build_longmemeval_turn_retrieval_eval import (
+        BM25_ABLATION_STOPWORDS,
+        evaluate_turn_retrieval,
+        rank_bm25,
+        rank_jaccard,
+    )
 
 
 CATEGORY_NAMES = {
