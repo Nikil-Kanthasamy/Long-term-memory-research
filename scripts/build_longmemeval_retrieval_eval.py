@@ -75,10 +75,33 @@ def rank_sessions(question, sessions):
     return ranked
 
 
-def evaluate(cases, ks=(1, 3, 5, 10)):
+
+def rank_sessions_bm25(question, sessions, k1=1.5, b=0.75):
+    """Rank sessions with BM25 (Okapi); IDF is computed over this question's haystack."""
+    query_terms = terms(question)
+    tokenized = [terms(doc["text"]) for doc in sessions]
+    doc_freq = Counter(term for doc_terms in tokenized for term in set(doc_terms))
+    count = len(tokenized)
+    avg_len = sum(map(len, tokenized)) / count if count else 0.0
+    ranked = []
+    for doc, doc_terms in zip(sessions, tokenized):
+        frequencies = Counter(doc_terms)
+        score = 0.0
+        for term in set(query_terms):
+            tf = frequencies[term]
+            if not tf:
+                continue
+            idf = math.log(1 + (count - doc_freq[term] + 0.5) / (doc_freq[term] + 0.5))
+            norm = tf + k1 * (1 - b + b * len(doc_terms) / max(avg_len, 1e-12))
+            score += idf * tf * (k1 + 1) / norm
+        ranked.append((score, doc["session_id"], bool(doc["relevant"])))
+    ranked.sort(key=lambda x: (-x[0], x[1]))
+    return ranked
+
+def evaluate(cases, ks=(1, 3, 5, 10), ranker=rank_sessions):
     ranks, per_type = [], {}
     for case in cases:
-        ranked = rank_sessions(case["question"], case["sessions"])
+        ranked = ranker(case["question"], case["sessions"])
         first = next((i + 1 for i, row in enumerate(ranked) if row[2]), None)
         ranks.append(first)
         bucket = per_type.setdefault(case["question_type"], [])
@@ -114,7 +137,7 @@ def main():
     Path(args.output_summary).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output_cases).write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in cases), encoding="utf-8")
     summary = {"build": build_summary, "retrieval": results,
-               "warning": "Lexical Jaccard is a transparent baseline, not a semantic retriever. Zero-score ties are deterministically ordered by session ID."}
+               "warning": "Jaccard and BM25 are lexical baselines, not semantic retrievers. Ties are deterministically ordered by session ID; BM25 IDF is computed per question haystack."}
     Path(args.output_summary).write_text(json.dumps(summary, indent=2) + "\\n", encoding="utf-8")
     print(json.dumps(summary, sort_keys=True))
 
