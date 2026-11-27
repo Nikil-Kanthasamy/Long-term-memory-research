@@ -17,6 +17,7 @@ try:
         evaluate_turn_retrieval,
         rank_bm25,
         rank_jaccard,
+        rank_rrf,
     )
 except ModuleNotFoundError:
     # Direct script execution places scripts/ (not the repository root) on sys.path.
@@ -219,6 +220,7 @@ def main():
 
     ks = (1, 3, 5, 10)
     baseline = evaluate_turn_retrieval(cases, rank_bm25, ks)
+    rrf = evaluate_turn_retrieval(cases, rank_rrf, ks)
     ablation = evaluate_turn_retrieval(
         cases,
         lambda question, turns: rank_bm25(
@@ -251,16 +253,22 @@ def main():
         },
         "retrieval_jaccard": jaccard["metrics"],
         "retrieval_bm25": baseline["metrics"],
+        "retrieval_rrf_bm25_jaccard": rrf["metrics"],
+        "rrf_protocol": {"fusion": "reciprocal rank fusion of BM25 and token-set Jaccard", "k": 60},
         "retrieval_bm25_stopword_ablation": ablation["metrics"],
         "retrieval_bm25_selective_stopword_ablation": selective["metrics"],
         "paired_question_analysis": paired_summary(
             baseline, ablation, resamples=args.bootstrap_resamples
+        ),
+        "paired_rrf_question_analysis": paired_summary(
+            baseline, rrf, resamples=args.bootstrap_resamples
         ),
         "paired_selective_question_analysis": paired_summary(
             baseline, selective, resamples=args.bootstrap_resamples
         ),
         "per_question": {
             "bm25": baseline["per_question"],
+            "rrf_bm25_jaccard": rrf["per_question"],
             "stopword_ablation": ablation["per_question"],
             "selective_stopword_ablation": selective["per_question"],
         },
@@ -270,6 +278,7 @@ def main():
     print(json.dumps({
         "build": build,
         "bm25": baseline["metrics"],
+        "rrf_bm25_jaccard": rrf["metrics"],
         "stopword_ablation": ablation["metrics"],
         "selective_stopword_ablation": selective["metrics"],
         "paired": summary["paired_question_analysis"],
