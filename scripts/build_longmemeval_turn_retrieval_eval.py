@@ -103,7 +103,7 @@ mentioned tell can
 
 # Conservative, predeclared generic-word ablation. Temporal, relational,
 # interrogative, possessive, and action terms from the broader list are kept.
-BM25_SELECTIVE_STOPWORDS = frozenset({"a", "an", "the", "and", "or", "of"})
+BM25_SELECTIVE_STOPWORDS = frozenset({"a", "an", "the", "and", "or"})
 
 
 def rank_bm25(question, turns, k1=1.5, b=0.75, stopwords=frozenset()):
